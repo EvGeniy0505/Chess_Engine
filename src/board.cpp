@@ -47,36 +47,22 @@ bool Board::makeMove(int fromX, int fromY, int toX, int toY, PieceType promotion
 
     // Взятие на проходе
     if (piece.type == PieceType::Pawn && toX != fromX && isEmpty(toX, toY)) {
-        grid_[fromY][toX] = {PieceType::None, Color::White, '.'}; // Убираем взятую пешку
+        // Удаляем взятую пешку (она находится на той же строке, но в другом столбце)
+        grid_[fromY][toX] = {PieceType::None, Color::White, '.'};
     }
 
     // Делаем ход
     Piece movedPiece = piece;
     if (piece.type == PieceType::Pawn && (toY == 0 || toY == 7)) {
         movedPiece.type = promotion == PieceType::None ? PieceType::Queen : promotion;
+        movedPiece.display = getPieceSymbol(movedPiece.type, movedPiece.color);
     }
 
     grid_[toY][toX] = movedPiece;
     grid_[fromY][fromX] = {PieceType::None, Color::White, '.'};
 
     // Обновляем состояние для рокировки
-    if (piece.type == PieceType::King) {
-        if (piece.color == Color::White) {
-            white_king_moved_ = true;
-        } else {
-            black_king_moved_ = true;
-        }
-    }
-
-    if (piece.type == PieceType::Rook) {
-        if (piece.color == Color::White) {
-            if (fromX == 0 && fromY == 7) white_queenside_rook_moved_ = true;
-            if (fromX == 7 && fromY == 7) white_kingside_rook_moved_ = true;
-        } else {
-            if (fromX == 0 && fromY == 0) black_queenside_rook_moved_ = true;
-            if (fromX == 7 && fromY == 0) black_kingside_rook_moved_ = true;
-        }
-    }
+    updateCastlingState(fromX, fromY);
 
     // Проверяем, не остался ли король под шахом
     if (isCheck(current_player_)) {
@@ -91,31 +77,15 @@ bool Board::makeMove(int fromX, int fromY, int toX, int toY, PieceType promotion
 }
 
 bool Board::castle(int kingX, int kingY, int toX, int toY) {
-    // Проверяем возможность рокировки
     if (isCheck(current_player_)) return false;
 
     int direction = (toX > kingX) ? 1 : -1;
     int rookX = (direction > 0) ? 7 : 0;
     
-    // Проверяем, что ладья на месте
+    // Проверяем ладью
     if (grid_[kingY][rookX].type != PieceType::Rook || 
         grid_[kingY][rookX].color != current_player_) {
         return false;
-    }
-
-    // Проверяем, что король и ладья не двигались
-    if (current_player_ == Color::White) {
-        if (white_king_moved_) return false;
-        if ((direction > 0 && white_kingside_rook_moved_) || 
-            (direction < 0 && white_queenside_rook_moved_)) {
-            return false;
-        }
-    } else {
-        if (black_king_moved_) return false;
-        if ((direction > 0 && black_kingside_rook_moved_) || 
-            (direction < 0 && black_queenside_rook_moved_)) {
-            return false;
-        }
     }
 
     // Проверяем, что клетки между королем и ладьей свободны
@@ -124,8 +94,10 @@ bool Board::castle(int kingX, int kingY, int toX, int toY) {
     }
 
     // Проверяем, что король не проходит через атакованные клетки
-    for (int x = kingX; x != toX; x += direction) {
-        if (isSquareAttacked(x, kingY, current_player_)) return false;
+    for (int x = kingX; x != toX + direction; x += direction) {
+        if (isSquareAttacked(x, kingY, current_player_ == Color::White ? Color::Black : Color::White)) {
+            return false;
+        }
     }
 
     // Выполняем рокировку
@@ -136,7 +108,38 @@ bool Board::castle(int kingX, int kingY, int toX, int toY) {
     grid_[kingY][rookNewX] = grid_[kingY][rookX];
     grid_[kingY][rookX] = {PieceType::None, Color::White, '.'};
 
+    // Обновляем состояние рокировки
+    if (current_player_ == Color::White) {
+        white_king_moved_ = true;
+        if (direction > 0) white_kingside_rook_moved_ = true;
+        else white_queenside_rook_moved_ = true;
+    } else {
+        black_king_moved_ = true;
+        if (direction > 0) black_kingside_rook_moved_ = true;
+        else black_queenside_rook_moved_ = true;
+    }
+
+    // Передаем ход (это было пропущено)
+    current_player_ = (current_player_ == Color::White) ? Color::Black : Color::White;
+    
     return true;
+}
+
+void Board::updateCastlingState(int x, int y) {
+    Piece& piece = grid_[y][x];
+    if (piece.type == PieceType::King) {
+        if (piece.color == Color::White) white_king_moved_ = true;
+        else black_king_moved_ = true;
+    }
+    else if (piece.type == PieceType::Rook) {
+        if (piece.color == Color::White) {
+            if (x == 0 && y == 7) white_queenside_rook_moved_ = true;
+            if (x == 7 && y == 7) white_kingside_rook_moved_ = true;
+        } else {
+            if (x == 0 && y == 0) black_queenside_rook_moved_ = true;
+            if (x == 7 && y == 0) black_kingside_rook_moved_ = true;
+        }
+    }
 }
 
 bool Board::isSquareAttacked(int x, int y, Color byColor) const {
@@ -177,21 +180,11 @@ bool Board::isCheckmate(Color player) {
             if (grid_[y][x].type != PieceType::None && grid_[y][x].color == player) {
                 auto moves = generatePseudoLegalMoves(x, y);
                 for (const auto& [mx, my] : moves) {
-                    // Пробуем сделать ход
-                    Piece originalFrom = grid_[y][x];
-                    Piece originalTo = grid_[my][mx];
-                    
-                    grid_[my][mx] = originalFrom;
-                    grid_[y][x] = {PieceType::None, Color::White, '.'};
-                    
-                    bool stillInCheck = isCheck(player);
-                    
-                    // Откатываем ход
-                    grid_[y][x] = originalFrom;
-                    grid_[my][mx] = originalTo;
-                    
-                    if (!stillInCheck) {
-                        return false;
+                    Board tempBoard = *this;
+                    if (tempBoard.makeMove(x, y, mx, my)) {
+                        if (!tempBoard.isCheck(player)) {
+                            return false;
+                        }
                     }
                 }
             }
@@ -211,26 +204,17 @@ std::vector<std::pair<int, int>> Board::getPossibleMoves(int x, int y) const {
     }
     
     for (const auto& [mx, my] : moves) {
-        // Создаем временную копию доски
         Board tempBoard = *this;
-        
-        // Делаем ход на временной доске
-        tempBoard.grid_[my][mx] = tempBoard.grid_[y][x];
-        tempBoard.grid_[y][x] = {PieceType::None, Color::White, '.'};
-        
-        // Проверяем, не остался ли король под шахом
-        if (!tempBoard.isCheck(current_player_)) {
+        if (tempBoard.makeMove(x, y, mx, my)) {
             validMoves.emplace_back(mx, my);
         }
     }
     
     // Добавляем рокировку, если возможно
     if (piece.type == PieceType::King && !isCheck(current_player_)) {
-        // Короткая рокировка
         if (canCastleKingside(current_player_)) {
             validMoves.emplace_back(x + 2, y);
         }
-        // Длинная рокировка
         if (canCastleQueenside(current_player_)) {
             validMoves.emplace_back(x - 2, y);
         }
@@ -244,14 +228,12 @@ bool Board::canCastleKingside(Color player) const {
         return !white_king_moved_ && !white_kingside_rook_moved_ && 
                isEmpty(5, 7) && isEmpty(6, 7) &&
                !isSquareAttacked(4, 7, Color::Black) &&
-               !isSquareAttacked(5, 7, Color::Black) &&
-               !isSquareAttacked(6, 7, Color::Black);
+               !isSquareAttacked(5, 7, Color::Black);
     } else {
         return !black_king_moved_ && !black_kingside_rook_moved_ && 
                isEmpty(5, 0) && isEmpty(6, 0) &&
                !isSquareAttacked(4, 0, Color::White) &&
-               !isSquareAttacked(5, 0, Color::White) &&
-               !isSquareAttacked(6, 0, Color::White);
+               !isSquareAttacked(5, 0, Color::White);
     }
 }
 
@@ -260,14 +242,12 @@ bool Board::canCastleQueenside(Color player) const {
         return !white_king_moved_ && !white_queenside_rook_moved_ && 
                isEmpty(3, 7) && isEmpty(2, 7) && isEmpty(1, 7) &&
                !isSquareAttacked(4, 7, Color::Black) &&
-               !isSquareAttacked(3, 7, Color::Black) &&
-               !isSquareAttacked(2, 7, Color::Black);
+               !isSquareAttacked(3, 7, Color::Black);
     } else {
         return !black_king_moved_ && !black_queenside_rook_moved_ && 
                isEmpty(3, 0) && isEmpty(2, 0) && isEmpty(1, 0) &&
                !isSquareAttacked(4, 0, Color::White) &&
-               !isSquareAttacked(3, 0, Color::White) &&
-               !isSquareAttacked(2, 0, Color::White);
+               !isSquareAttacked(3, 0, Color::White);
     }
 }
 
@@ -300,6 +280,18 @@ bool Board::isEnemy(int x, int y, Color allyColor) const {
     return isInBounds(x, y) && grid_[y][x].type != PieceType::None && grid_[y][x].color != allyColor;
 }
 
+char Board::getPieceSymbol(PieceType type, Color color) const {
+    switch (type) {
+        case PieceType::King:   return color == Color::White ? 'K' : 'k';
+        case PieceType::Queen:  return color == Color::White ? 'Q' : 'q';
+        case PieceType::Rook:   return color == Color::White ? 'R' : 'r';
+        case PieceType::Bishop: return color == Color::White ? 'B' : 'b';
+        case PieceType::Knight: return color == Color::White ? 'N' : 'n';
+        case PieceType::Pawn:   return color == Color::White ? 'P' : 'p';
+        default: return '.';
+    }
+}
+
 std::vector<std::pair<int, int>> Board::generatePseudoLegalMoves(int x, int y) const {
     std::vector<std::pair<int, int>> moves;
     if (!isInBounds(x, y)) return moves;
@@ -308,31 +300,38 @@ std::vector<std::pair<int, int>> Board::generatePseudoLegalMoves(int x, int y) c
     if (piece.type == PieceType::None) return moves;
 
     const Color enemyColor = piece.color == Color::White ? Color::Black : Color::White;
+    const int startRow = piece.color == Color::White ? 6 : 1;
+    const int enPassantRow = piece.color == Color::White ? 3 : 4;
 
     switch (piece.type) {
         case PieceType::Pawn: {
-            int direction = piece.color == Color::White ? -1 : 1;
-            int startRow = piece.color == Color::White ? 6 : 1;
+            const int direction = piece.color == Color::White ? -1 : 1;
 
-            // Ход вперед
+            // Обычный ход вперед
             if (isEmpty(x, y + direction)) {
                 moves.emplace_back(x, y + direction);
+                
                 // Двойной ход с начальной позиции
-                if (y == startRow && isEmpty(x, y + 2 * direction)) {
+                if (y == startRow && isEmpty(x, y + 2 * direction) && isEmpty(x, y + direction)) {
                     moves.emplace_back(x, y + 2 * direction);
                 }
             }
 
             // Взятия
             for (int dx : {-1, 1}) {
+                if (x + dx < 0 || x + dx >= 8) continue;
+                
+                // Обычное взятие
                 if (isEnemy(x + dx, y + direction, piece.color)) {
                     moves.emplace_back(x + dx, y + direction);
                 }
+                
                 // Взятие на проходе
-                else if (y == (piece.color == Color::White ? 3 : 4) && 
-                         isEnemy(x + dx, y, enemyColor) && 
-                         grid_[y][x + dx].type == PieceType::Pawn) {
-                    moves.emplace_back(x + dx, y + direction);
+                if (y == enPassantRow) {
+                    if (isEnemy(x + dx, y, piece.color) && 
+                        grid_[y][x + dx].type == PieceType::Pawn) {
+                        moves.emplace_back(x + dx, y + direction);
+                    }
                 }
             }
             break;
@@ -403,7 +402,6 @@ std::vector<std::pair<int, int>> Board::generatePseudoLegalMoves(int x, int y) c
         }
 
         case PieceType::Queen: {
-            // Комбинация ходов слона и ладьи
             constexpr std::array<std::pair<int, int>, 8> directions = {
                 {{1, 1}, {1, -1}, {-1, 1}, {-1, -1},
                  {1, 0}, {-1, 0}, {0, 1}, {0, -1}}

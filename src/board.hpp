@@ -38,6 +38,8 @@ private:
     bool canCastleKingside(Color player) const;
     bool canCastleQueenside(Color player) const;
     void initializeBoard();
+    void updateCastlingState(int x, int y);
+    char getPieceSymbol(PieceType type, Color color) const;
 };
 
 } // namespace chess
