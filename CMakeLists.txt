@@ -29,4 +29,5 @@ target_include_directories(chess_engine PRIVATE
 target_link_libraries(chess_engine PRIVATE
     SDL2
     SDL2_ttf
+    SDL2_image
 )

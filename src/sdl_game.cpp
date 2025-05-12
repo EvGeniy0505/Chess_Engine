@@ -4,7 +4,7 @@
 #include <thread>
 
 SDLGame::SDLGame(bool vsComputer, chess::Color computerColor) 
-    : window(nullptr), renderer(nullptr), font(nullptr),
+    : window(nullptr), renderer(nullptr), font(nullptr), piecesTexture(nullptr),
       isRunning(true), isDragging(false), vsComputer(vsComputer),
       dragStartX(-1), dragStartY(-1), computer(computerColor),
       board(chess::PieceSet::UNICODE) {
@@ -16,37 +16,53 @@ SDLGame::~SDLGame() {
 }
 
 void SDLGame::initSDL() {
-    if (SDL_Init(SDL_INIT_VIDEO)) {
+    // Инициализация SDL
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         throw std::runtime_error("SDL_Init Error: " + std::string(SDL_GetError()));
     }
 
-    window = SDL_CreateWindow("Chess Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
-                             800, 800, SDL_WINDOW_SHOWN);
+    // Создание окна
+    window = SDL_CreateWindow("Chess Game", 
+                             SDL_WINDOWPOS_CENTERED, 
+                             SDL_WINDOWPOS_CENTERED, 
+                             800, 800, 
+                             SDL_WINDOW_SHOWN);
     if (!window) {
         throw std::runtime_error("SDL_CreateWindow Error: " + std::string(SDL_GetError()));
     }
 
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    // Создание рендерера
+    renderer = SDL_CreateRenderer(window, -1, 
+                                SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!renderer) {
         SDL_DestroyWindow(window);
         throw std::runtime_error("SDL_CreateRenderer Error: " + std::string(SDL_GetError()));
     }
 
-    if (TTF_Init() == -1) {
-        throw std::runtime_error("TTF_Init Error: " + std::string(TTF_GetError()));
+    // Инициализация SDL_image
+    if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
+        throw std::runtime_error("SDL_image could not initialize: " + std::string(IMG_GetError()));
     }
 
-    font = TTF_OpenFont("../assets/fonts/Chess-7.TTF", 24);
-    if (!font) {
-        std::cerr << "Warning: Failed to load font, using simple rendering. Error: " << TTF_GetError() << std::endl;
+    // Загрузка текстуры с фигурами
+    piecesTexture = IMG_LoadTexture(renderer, "../assets/images/chess_pieces.png");
+    if (!piecesTexture) {
+        std::cerr << "Warning: Failed to load chess pieces texture: " << IMG_GetError() << std::endl;
+    }
+
+    // Инициализация SDL_ttf (для текстового фолбэка)
+    if (TTF_Init() == -1) {
+        std::cerr << "Warning: SDL_ttf could not initialize: " << TTF_GetError() << std::endl;
     }
 }
 
 void SDLGame::renderBoard() {
+    // Рисуем шахматную доску
     for (int y = 0; y < 8; ++y) {
         for (int x = 0; x < 8; ++x) {
             SDL_Rect rect = {x * 100, y * 100, 100, 100};
             
+            // Подсветка возможных ходов
             bool isHighlight = false;
             for (const auto& move : possibleMoves) {
                 if (move.first == x && move.second == y) {
@@ -73,35 +89,51 @@ void SDLGame::renderBoard() {
 void SDLGame::drawPiece(const chess::Piece& piece, const SDL_Rect& rect) {
     if (piece.type == chess::PieceType::None) return;
 
-    static const std::map<chess::PieceType, char> pieceSymbols = {
-        {chess::PieceType::King,   'k'},
-        {chess::PieceType::Queen,  'q'},
-        {chess::PieceType::Rook,   'r'},
-        {chess::PieceType::Bishop, 'b'},
-        {chess::PieceType::Knight, 'n'},
-        {chess::PieceType::Pawn,   'p'}
-    };
+    // 1. Попытка использовать графические спрайты
+    if (piecesTexture) {
+        // Размер одной фигуры в спрайте (64x64)
+        const int pieceSize = 60;
+        SDL_Rect srcRect = {0, 0, pieceSize, pieceSize};
 
-    char symbol = pieceSymbols.at(piece.type);
-    if (piece.color == chess::Color::White) {
-        symbol = toupper(symbol);
+        // Выбираем колонку в зависимости от типа фигуры
+        switch (piece.type) {
+            case chess::PieceType::Queen:  srcRect.x = 0; break;
+            case chess::PieceType::King:   srcRect.x = pieceSize; break;
+            case chess::PieceType::Rook:   srcRect.x = pieceSize*2; break;
+            case chess::PieceType::Knight: srcRect.x = pieceSize*3; break;
+            case chess::PieceType::Bishop: srcRect.x = pieceSize*4; break;
+            case chess::PieceType::Pawn:   srcRect.x = pieceSize*5; break;
+            default: return;
+        }
+
+        
+        // Выбираем строку в зависимости от цвета
+        srcRect.y = (piece.color == chess::Color::White) ? pieceSize : 0;
+
+        const int drawSize = 100; // Новый размер фигуры
+    
+        // Центрирование фигуры в клетке
+        SDL_Rect destRect = {
+            rect.x + (rect.w - drawSize)/2,  // Центр по X
+            rect.y + (rect.h - drawSize)/2,  // Центр по Y
+            drawSize,                        // Новая ширина
+            drawSize                         // Новая высота
+        };
+
+        // Рисуем фигуру
+        SDL_RenderCopy(renderer, piecesTexture, &srcRect, &destRect);
+        return;
     }
 
-    SDL_Color color = {0, 0, 0, 255};
-    if (piece.color == chess::Color::White) {
-        color = {255, 255, 255, 255};
-    }
-
-    SDL_Surface* surface = TTF_RenderGlyph_Blended(font, symbol, color);
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-    
-    SDL_RenderCopy(renderer, texture, nullptr, &rect);
-    
-    SDL_FreeSurface(surface);
-    SDL_DestroyTexture(texture);
+    // 2. Fallback: рисуем простые цветные круги
+    SDL_Color color = piece.color == chess::Color::White ? 
+        SDL_Color{255, 255, 255, 255} : SDL_Color{50, 50, 50, 255};
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+    SDL_RenderFillRect(renderer, &rect);
 }
 
 void SDLGame::renderPieces() {
+    // Сначала рисуем все фигуры, кроме перетаскиваемой
     for (int y = 0; y < 8; ++y) {
         for (int x = 0; x < 8; ++x) {
             if (isDragging && x == dragStartX && y == dragStartY) continue;
@@ -109,11 +141,12 @@ void SDLGame::renderPieces() {
             const auto& piece = board.getPiece(x, y);
             if (piece.type == chess::PieceType::None) continue;
 
-            SDL_Rect rect = {x * 100 + 25, y * 100 + 25, 50, 50};
+            SDL_Rect rect = {x * 100 + 18, y * 100 + 18, 64, 64};
             drawPiece(piece, rect);
         }
     }
     
+    // Затем рисуем перетаскиваемую фигуру поверх остальных
     if (isDragging) {
         drawPiece(draggedPiece, dragRect);
     }
@@ -216,9 +249,12 @@ void SDLGame::run() {
 }
 
 void SDLGame::cleanup() {
+    if (piecesTexture) SDL_DestroyTexture(piecesTexture);
     if (font) TTF_CloseFont(font);
     if (renderer) SDL_DestroyRenderer(renderer);
     if (window) SDL_DestroyWindow(window);
+    
+    IMG_Quit();
     TTF_Quit();
     SDL_Quit();
 }

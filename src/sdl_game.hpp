@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_image.h>  
 #include "board.hpp"
 #include "pieces.hpp"
 #include "engine.hpp"
@@ -26,6 +27,7 @@ private:
     SDL_Window* window;
     SDL_Renderer* renderer;
     TTF_Font* font;
+    SDL_Texture* piecesTexture;
     chess::Board board;
     chess::ComputerPlayer computer;
     bool isRunning;
