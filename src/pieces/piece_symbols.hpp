@@ -1,7 +1,7 @@
 #pragma once
 
-#include "pieces/color.hpp"
-#include "pieces/pieces_types.hpp"
+#include "pieces/piece_color.hpp"
+#include "pieces/piece_types.hpp"
 #include <array>
 
 namespace chess {

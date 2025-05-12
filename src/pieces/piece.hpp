@@ -1,8 +1,8 @@
 #pragma once
 
-#include "pieces/color.hpp"
-#include "pieces/pieces_types.hpp"
-#include "pieces/symbols.hpp"
+#include "pieces/piece_color.hpp"
+#include "pieces/piece_symbols.hpp"
+#include "pieces/piece_types.hpp"
 #include <string>
 
 namespace chess {
@@ -14,14 +14,14 @@ class Piece {
         : type_(type), color_(color), cellColor_(cellColor) {}
 
     // Геттеры
-    PieceType getType() const { return type_; }
-    Color getColor() const { return color_; }
-    CellColor getCellColor() const { return cellColor_; }
+    PieceType get_type() const { return type_; }
+    Color get_color() const { return color_; }
+    CellColor get_cell_color() const { return cellColor_; }
 
     // Сеттеры
-    void setType(PieceType type) { type_ = type; }
-    void setColor(Color color) { color_ = color; }
-    void setCellColor(CellColor color) { cellColor_ = color; }
+    void set_type(PieceType type) { type_ = type; }
+    void set_color(Color color) { color_ = color; }
+    void set_cell_color(CellColor color) { cellColor_ = color; }
 
     std::string getSymbol(PieceSet set = PieceSet::UNICODE) const {
         return PieceSymbols::get(type_, color_, set);
@@ -31,7 +31,7 @@ class Piece {
         std::string symbol = PieceSymbols::get(type_, color_, set);
         const auto &codes = getColorCodes(cellColor_);
         const char *fg = (color_ == Color::WHITE) ? codes.foreground_white
-                                                : codes.foreground_black;
+                                                  : codes.foreground_black;
 
         std::string result;
         result.reserve(32);
