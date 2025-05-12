@@ -7,20 +7,42 @@ namespace chess {
 
 Board::Board(PieceSet set) : piece_set_(set) { initializeBoard(); }
 
-void Board::print(bool showHighlights) const {
-  std::cout << "  a b c d e f g h\n";
+void Board::print(bool showHighlights) {
+  // Верхняя координатная сетка
+  std::cout << "\n   a  b  c  d  e  f  g  h\n";
+
   for (int y = 0; y < 8; ++y) {
+    // Номер строки слева
     std::cout << 8 - y << " ";
+
     for (int x = 0; x < 8; ++x) {
-      std::cout << grid_[y][x].symbol(piece_set_) << " ";
+      Piece &piece = grid_[y][x];
+
+      // Устанавливаем цвет клетки
+      piece.cell_color = ((x + y) % 2) ? CellColor::BLACK : CellColor::WHITE;
+
+      // Подсветка ходов
+      if (showHighlights && piece.type == PieceType::Highlight) {
+        piece.cell_color = ((x + y) % 2) ? CellColor::HIGHLIGHT_BLACK
+                                         : CellColor::HIGHLIGHT_WHITE;
+      }
+
+      // Вывод фигуры с цветом
+      std::cout << piece.getColoredSymbol(piece_set_);
     }
-    std::cout << 8 - y << "\n";
+
+    // Номер строки справа
+    std::cout << " " << 8 - y << "\n";
   }
-  std::cout << "  a b c d e f g h\n";
-  std::cout << "Current player: "
-            << (current_player_ == Color::White ? "White" : "Black") << "\n";
+
+  // Нижняя координатная сетка
+  std::cout << "   a  b  c  d  e  f  g  h\n\n";
+
+  // Дополнительная информация
+  std::cout << "Текущий игрок: "
+            << (current_player_ == Color::White ? "Белые" : "Чёрные") << "\n";
   if (isCheck(current_player_)) {
-    std::cout << "CHECK!\n";
+    std::cout << "ШАХ!\n";
   }
 }
 

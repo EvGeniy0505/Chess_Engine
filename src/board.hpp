@@ -18,7 +18,7 @@ public:
   void setPieceSet(PieceSet set);
   PieceSet getPieceSet() const;
 
-  void print(bool showHighlights = false) const;
+  void print(bool showHighlights = false);
   bool makeMove(int fromX, int fromY, int toX, int toY,
                 PieceType promotion = PieceType::None);
   bool isCheck(Color player) const;
