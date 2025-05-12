@@ -46,51 +46,73 @@ void Board::print(bool showHighlights) {
   }
 }
 
-bool Board::makeMove(int fromX, int fromY, int toX, int toY,
-                     PieceType promotion) {
+bool Board::makeMove(int fromX, int fromY, int toX, int toY, PieceType promotion) {
   if (!isInBounds(fromX, fromY) || !isInBounds(toX, toY)) {
-    return false;
+      return false;
   }
 
-  Piece &piece = grid_[fromY][fromX];
+  Piece& piece = grid_[fromY][fromX];
   if (piece.type == PieceType::None || piece.color != current_player_) {
-    return false;
+      return false;
   }
 
+  // Сохраняем исходные фигуры перед ходом
+  Piece originalFrom = piece;
+  Piece originalTo = grid_[toY][toX];
+
+  // Специальная обработка рокировки
   if (piece.type == PieceType::King && abs(fromX - toX) == 2) {
-    return castle(fromX, fromY, toX, toY);
+      return castle(fromX, fromY, toX, toY);
   }
 
   auto moves = generatePseudoLegalMoves(fromX, fromY);
-  if (std::find(moves.begin(), moves.end(), std::make_pair(toX, toY)) ==
-      moves.end()) {
-    return false;
+  if (std::find(moves.begin(), moves.end(), std::make_pair(toX, toY)) == moves.end()) {
+      return false;
   }
 
+  // Взятие на проходе
   if (piece.type == PieceType::Pawn && toX != fromX && isEmpty(toX, toY)) {
-    grid_[fromY][toX] = Piece(PieceType::None, Color::White, ".");
+      grid_[fromY][toX] = Piece(PieceType::None, Color::White, ".");
   }
 
+  // Выполняем ход
   Piece movedPiece = piece;
   if (piece.type == PieceType::Pawn && (toY == 0 || toY == 7)) {
-    movedPiece.type =
-        promotion == PieceType::None ? PieceType::Queen : promotion;
-    movedPiece.display = getPieceSymbol(movedPiece.type, movedPiece.color);
+      movedPiece.type = promotion == PieceType::None ? PieceType::Queen : promotion;
+      movedPiece.display = getPieceSymbol(movedPiece.type, movedPiece.color);
   }
+
+  // Сохраняем состояние рокировки перед изменением
+  bool originalWhiteKingMoved = white_king_moved_;
+  bool originalBlackKingMoved = black_king_moved_;
+  bool originalWhiteKingsideRook = white_kingside_rook_moved_;
+  bool originalWhiteQueensideRook = white_queenside_rook_moved_;
+  bool originalBlackKingsideRook = black_kingside_rook_moved_;
+  bool originalBlackQueensideRook = black_queenside_rook_moved_;
 
   grid_[toY][toX] = movedPiece;
   grid_[fromY][fromX] = Piece(PieceType::None, Color::White, ".");
-
+  
   updateCastlingState(fromX, fromY);
 
+  // Проверяем, не остался ли король под шахом
   if (isCheck(current_player_)) {
-    grid_[fromY][fromX] = piece;
-    grid_[toY][toX] = Piece(PieceType::None, Color::White, ".");
-    return false;
+      // Откатываем ход полностью
+      grid_[fromY][fromX] = originalFrom;
+      grid_[toY][toX] = originalTo;
+      
+      // Восстанавливаем состояние рокировки
+      white_king_moved_ = originalWhiteKingMoved;
+      black_king_moved_ = originalBlackKingMoved;
+      white_kingside_rook_moved_ = originalWhiteKingsideRook;
+      white_queenside_rook_moved_ = originalWhiteQueensideRook;
+      black_kingside_rook_moved_ = originalBlackKingsideRook;
+      black_queenside_rook_moved_ = originalBlackQueensideRook;
+      
+      return false;
   }
 
-  current_player_ =
-      (current_player_ == Color::White) ? Color::Black : Color::White;
+  current_player_ = (current_player_ == Color::White) ? Color::Black : Color::White;
   return true;
 }
 
