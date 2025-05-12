@@ -5,14 +5,14 @@
 
 namespace chess {
 
-Board::Board() { initializeBoard(); }
+Board::Board(PieceSet set) : piece_set_(set) { initializeBoard(); }
 
 void Board::print(bool showHighlights) const {
   std::cout << "  a b c d e f g h\n";
   for (int y = 0; y < 8; ++y) {
     std::cout << 8 - y << " ";
     for (int x = 0; x < 8; ++x) {
-      std::cout << grid_[y][x].symbol() << " ";
+      std::cout << grid_[y][x].symbol(piece_set_) << " ";
     }
     std::cout << 8 - y << "\n";
   }

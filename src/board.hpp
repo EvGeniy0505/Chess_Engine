@@ -10,7 +10,14 @@ namespace chess {
 
 class Board {
 public:
-  Board();
+  // Добавляем конструктор с параметром PieceSet и устанавливаем значение по
+  // умолчанию
+  Board(PieceSet set = PieceSet::UNICODE);
+
+  // Добавляем методы для работы с набором фигур
+  void setPieceSet(PieceSet set);
+  PieceSet getPieceSet() const;
+
   void print(bool showHighlights = false) const;
   bool makeMove(int fromX, int fromY, int toX, int toY,
                 PieceType promotion = PieceType::None);
@@ -23,6 +30,8 @@ public:
 private:
   std::array<std::array<Piece, 8>, 8> grid_;
   Color current_player_ = Color::White;
+  PieceSet piece_set_ =
+      PieceSet::UNICODE; // Добавляем поле для хранения текущего набора
 
   bool white_king_moved_ = false;
   bool white_kingside_rook_moved_ = false;
@@ -41,7 +50,10 @@ private:
   bool canCastleQueenside(Color player) const;
   void initializeBoard();
   void updateCastlingState(int x, int y);
-  std::string getPieceSymbol(PieceType type, Color color) const;
+  std::string
+  getPieceSymbol(PieceType type,
+                 Color color) const; // Можно оставить или удалить, если будем
+                                     // использовать symbol() из Piece
 };
 
 } // namespace chess

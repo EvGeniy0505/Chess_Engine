@@ -1,5 +1,8 @@
 #pragma once
+
+#include <map>
 #include <string>
+#include <vector>
 
 namespace chess {
 
@@ -13,32 +16,47 @@ enum class PieceType {
   Rook,
   Queen,
   King,
-  Highlight // Добавляем для подсветки ходов
+  Highlight
+};
+
+enum class PieceSet {
+  UNICODE, // Стандартные Unicode символы
+  LETTERS, // Буквенные обозначения (K, Q, R и т.д.)
+  SIMPLE,  // Простые ASCII символы (аналогично LETTERS)
+  FANTASY  // Альтернативные Unicode символы
 };
 
 struct Piece {
   PieceType type;
   Color color;
-  std::string display; // Символ для отображения
+  std::string display;
 
   Piece() : type(PieceType::None), color(Color::White), display(".") {}
   Piece(PieceType t, Color c, const std::string &d)
       : type(t), color(c), display(d) {}
 
-  std::string symbol() const { // Возвращаем строку
+  std::string symbol(PieceSet set = PieceSet::UNICODE) const {
     if (type == PieceType::Highlight)
       return display;
 
-    static const std::string symbols[2][6] = {
-        // Массив строк
-        {"♟", "♞", "♝", "♜", "♛", "♚"}, // Чёрные
-        {"♙", "♘", "♗", "♖", "♕", "♔"}  // Белые
-    };
-
     if (type == PieceType::None)
       return ".";
+
+    static const std::map<PieceSet, std::vector<std::vector<std::string>>>
+        symbols = {{PieceSet::UNICODE,
+                    {
+                        {"♟", "♞", "♝", "♜", "♛", "♚"}, // Белые
+                        {"♙", "♘", "♗", "♖", "♕", "♔"}  // Чёрные
+                    }},
+                   {PieceSet::LETTERS,
+                    {
+                        {"P", "N", "B", "R", "Q", "K"}, // Белые
+                        {"p", "n", "b", "r", "q", "k"}  // Чёрные
+                    }}};
+
     int idx = static_cast<int>(type) - 1;
-    return symbols[color == Color::White ? 0 : 1][idx];
+    return symbols.at(set)[color == Color::White ? 0 : 1][idx];
   }
 };
+
 } // namespace chess
