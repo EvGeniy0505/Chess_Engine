@@ -36,7 +36,7 @@ void SDLGame::initSDL() {
         throw std::runtime_error("TTF_Init Error: " + std::string(TTF_GetError()));
     }
 
-    font = TTF_OpenFont("arial.ttf", 24);
+    font = TTF_OpenFont("../assets/fonts/Chess-7.TTF", 24);
     if (!font) {
         std::cerr << "Warning: Failed to load font, using simple rendering. Error: " << TTF_GetError() << std::endl;
     }
@@ -71,31 +71,34 @@ void SDLGame::renderBoard() {
 }
 
 void SDLGame::drawPiece(const chess::Piece& piece, const SDL_Rect& rect) {
-    SDL_Color color = piece.color == chess::Color::White ? 
-        SDL_Color{255, 255, 255, 255} : SDL_Color{0, 0, 0, 255};
-    
-    if (font) {
-        const char* symbol = "?";
-        switch (piece.type) {
-            case chess::PieceType::Pawn:   symbol = "P"; break;
-            case chess::PieceType::Knight: symbol = "N"; break;
-            case chess::PieceType::Bishop: symbol = "B"; break;
-            case chess::PieceType::Rook:   symbol = "R"; break;
-            case chess::PieceType::Queen:  symbol = "Q"; break;
-            case chess::PieceType::King:   symbol = "K"; break;
-            default: break;
-        }
-        
-        SDL_Surface* surface = TTF_RenderText_Solid(font, symbol, color);
-        SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-        SDL_RenderCopy(renderer, texture, nullptr, &rect);
-        SDL_FreeSurface(surface);
-        SDL_DestroyTexture(texture);
-    } 
-    else {
-        SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-        SDL_RenderFillRect(renderer, &rect);
+    if (piece.type == chess::PieceType::None) return;
+
+    static const std::map<chess::PieceType, char> pieceSymbols = {
+        {chess::PieceType::King,   'k'},
+        {chess::PieceType::Queen,  'q'},
+        {chess::PieceType::Rook,   'r'},
+        {chess::PieceType::Bishop, 'b'},
+        {chess::PieceType::Knight, 'n'},
+        {chess::PieceType::Pawn,   'p'}
+    };
+
+    char symbol = pieceSymbols.at(piece.type);
+    if (piece.color == chess::Color::White) {
+        symbol = toupper(symbol);
     }
+
+    SDL_Color color = {0, 0, 0, 255};
+    if (piece.color == chess::Color::White) {
+        color = {255, 255, 255, 255};
+    }
+
+    SDL_Surface* surface = TTF_RenderGlyph_Blended(font, symbol, color);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    
+    SDL_RenderCopy(renderer, texture, nullptr, &rect);
+    
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
 }
 
 void SDLGame::renderPieces() {
