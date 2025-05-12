@@ -7,16 +7,14 @@ namespace chess {
 
 class ComputerPlayer {
 public:
-  ComputerPlayer(Color color) : color_(color) {}
-
-  std::optional<std::tuple<int, int, int, int>>
-  generateMove(const Board &board);
-  bool makeMove(Board &board);
+    ComputerPlayer(Color color) : color_(color) {}
+    bool makeMove(Board& board);
+    Color getColor() const { return color_; } // Добавляем публичный метод для доступа к цвету
 
 private:
-  Color color_;
-  std::random_device rd_;
-  std::mt19937 gen_{rd_()};
+    Color color_;
+    std::random_device rd_;
+    std::mt19937 gen_{rd_()};
 };
 
 } // namespace chess

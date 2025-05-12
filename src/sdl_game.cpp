@@ -1,54 +1,52 @@
 #include "sdl_game.hpp"
 #include <iostream>
+#include <chrono>
+#include <thread>
 
-SDLGame::SDLGame() : window(nullptr), renderer(nullptr), font(nullptr), isRunning(true) {
+SDLGame::SDLGame(bool vsComputer, chess::Color computerColor) 
+    : window(nullptr), renderer(nullptr), font(nullptr),
+      isRunning(true), isDragging(false), vsComputer(vsComputer),
+      dragStartX(-1), dragStartY(-1), computer(computerColor),
+      board(chess::PieceSet::UNICODE) {
     initSDL();
+}
+
+SDLGame::~SDLGame() {
+    cleanup();
 }
 
 void SDLGame::initSDL() {
     if (SDL_Init(SDL_INIT_VIDEO)) {
-        std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
-        exit(1);
+        throw std::runtime_error("SDL_Init Error: " + std::string(SDL_GetError()));
     }
 
     window = SDL_CreateWindow("Chess Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
                              800, 800, SDL_WINDOW_SHOWN);
     if (!window) {
-        std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
-        SDL_Quit();
-        exit(1);
+        throw std::runtime_error("SDL_CreateWindow Error: " + std::string(SDL_GetError()));
     }
 
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!renderer) {
         SDL_DestroyWindow(window);
-        std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
-        SDL_Quit();
-        exit(1);
+        throw std::runtime_error("SDL_CreateRenderer Error: " + std::string(SDL_GetError()));
     }
 
     if (TTF_Init() == -1) {
-        std::cerr << "TTF_Init Error: " << TTF_GetError() << std::endl;
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        exit(1);
+        throw std::runtime_error("TTF_Init Error: " + std::string(TTF_GetError()));
     }
 
     font = TTF_OpenFont("arial.ttf", 24);
     if (!font) {
-        std::cerr << "TTF_OpenFont Error: " << TTF_GetError() << std::endl;
-        // Продолжаем без шрифта, будем использовать примитивы
+        std::cerr << "Warning: Failed to load font, using simple rendering. Error: " << TTF_GetError() << std::endl;
     }
 }
 
 void SDLGame::renderBoard() {
-    // Рисуем доску
     for (int y = 0; y < 8; ++y) {
         for (int x = 0; x < 8; ++x) {
             SDL_Rect rect = {x * 100, y * 100, 100, 100};
             
-            // Подсветка возможных ходов
             bool isHighlight = false;
             for (const auto& move : possibleMoves) {
                 if (move.first == x && move.second == y) {
@@ -58,36 +56,17 @@ void SDLGame::renderBoard() {
             }
             
             if (isHighlight) {
-                SDL_SetRenderDrawColor(renderer, 100, 200, 100, 255); // Зеленая подсветка
-            } else if ((x + y) % 2 == 0) {
-                SDL_SetRenderDrawColor(renderer, 240, 217, 181, 255); // Светлые клетки
-            } else {
-                SDL_SetRenderDrawColor(renderer, 181, 136, 99, 255);  // Темные клетки
+                SDL_SetRenderDrawColor(renderer, 100, 200, 100, 255);
+            } 
+            else if ((x + y) % 2 == 0) {
+                SDL_SetRenderDrawColor(renderer, 240, 217, 181, 255);
+            } 
+            else {
+                SDL_SetRenderDrawColor(renderer, 181, 136, 99, 255);
             }
             
             SDL_RenderFillRect(renderer, &rect);
         }
-    }
-}
-
-void SDLGame::renderPieces() {
-    // Сначала рисуем все фигуры, кроме перетаскиваемой
-    for (int y = 0; y < 8; ++y) {
-        for (int x = 0; x < 8; ++x) {
-            // Не рисуем фигуру, которую перетаскиваем
-            if (isDragging && x == dragStartX && y == dragStartY) continue;
-            
-            const auto& piece = board.getPiece(x, y);
-            if (piece.type == chess::PieceType::None) continue;
-
-            SDL_Rect rect = {x * 100 + 25, y * 100 + 25, 50, 50};
-            drawPiece(piece, rect);
-        }
-    }
-    
-    // Затем рисуем перетаскиваемую фигуру поверх остальных
-    if (isDragging) {
-        drawPiece(draggedPiece, dragRect);
     }
 }
 
@@ -112,9 +91,28 @@ void SDLGame::drawPiece(const chess::Piece& piece, const SDL_Rect& rect) {
         SDL_RenderCopy(renderer, texture, nullptr, &rect);
         SDL_FreeSurface(surface);
         SDL_DestroyTexture(texture);
-    } else {
+    } 
+    else {
         SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
         SDL_RenderFillRect(renderer, &rect);
+    }
+}
+
+void SDLGame::renderPieces() {
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+            if (isDragging && x == dragStartX && y == dragStartY) continue;
+            
+            const auto& piece = board.getPiece(x, y);
+            if (piece.type == chess::PieceType::None) continue;
+
+            SDL_Rect rect = {x * 100 + 25, y * 100 + 25, 50, 50};
+            drawPiece(piece, rect);
+        }
+    }
+    
+    if (isDragging) {
+        drawPiece(draggedPiece, dragRect);
     }
 }
 
@@ -125,52 +123,72 @@ void SDLGame::handleEvents() {
             case SDL_QUIT:
                 isRunning = false;
                 break;
-                
             case SDL_MOUSEBUTTONDOWN:
-                if (event.button.button == SDL_BUTTON_LEFT) {
-                    int mouseX, mouseY;
-                    SDL_GetMouseState(&mouseX, &mouseY);
-                    dragStartX = mouseX / 100;
-                    dragStartY = mouseY / 100;
-                    
-                    // Проверяем, есть ли фигура в этой клетке
-                    const auto& piece = board.getPiece(dragStartX, dragStartY);
-                    if (piece.type != chess::PieceType::None && piece.color == board.current_player_) {
-                        isDragging = true;
-                        draggedPiece = piece;
-                        dragRect.x = mouseX - 50; // Центрируем на курсоре
-                        dragRect.y = mouseY - 50;
-                        possibleMoves = board.getPossibleMoves(dragStartX, dragStartY);
-                    }
-                }
+                handleMouseDown(event);
                 break;
-                
             case SDL_MOUSEMOTION:
-                if (isDragging) {
-                    dragRect.x = event.motion.x - 50;
-                    dragRect.y = event.motion.y - 50;
-                }
+                handleMouseMotion(event);
                 break;
-                
             case SDL_MOUSEBUTTONUP:
-                if (isDragging && event.button.button == SDL_BUTTON_LEFT) {
-                    int mouseX, mouseY;
-                    SDL_GetMouseState(&mouseX, &mouseY);
-                    int targetX = mouseX / 100;
-                    int targetY = mouseY / 100;
-                    
-                    // Пытаемся сделать ход
-                    if (board.makeMove(dragStartX, dragStartY, targetX, targetY)) {
-                        // Ход успешен
-                    }
-                    
-                    // Сбрасываем состояние перетаскивания
-                    isDragging = false;
-                    dragStartX = -1;
-                    dragStartY = -1;
-                    possibleMoves.clear();
-                }
+                handleMouseUp(event);
                 break;
+        }
+    }
+}
+
+void SDLGame::handleMouseDown(const SDL_Event& event) {
+    if ((!vsComputer || board.current_player_ != computer.getColor()) && 
+        event.button.button == SDL_BUTTON_LEFT) {
+        
+        int mouseX = event.button.x;
+        int mouseY = event.button.y;
+        dragStartX = mouseX / 100;
+        dragStartY = mouseY / 100;
+        
+        const auto& piece = board.getPiece(dragStartX, dragStartY);
+        if (piece.type != chess::PieceType::None && 
+            piece.color == board.current_player_) {
+            
+            isDragging = true;
+            draggedPiece = piece;
+            dragRect = {mouseX - 25, mouseY - 25, 50, 50};
+            possibleMoves = board.getPossibleMoves(dragStartX, dragStartY);
+        }
+    }
+}
+
+void SDLGame::handleMouseMotion(const SDL_Event& event) {
+    if (isDragging) {
+        dragRect.x = event.motion.x - 25;
+        dragRect.y = event.motion.y - 25;
+    }
+}
+
+void SDLGame::handleMouseUp(const SDL_Event& event) {
+    if (isDragging && event.button.button == SDL_BUTTON_LEFT) {
+        isDragging = false;
+        
+        int mouseX = event.button.x;
+        int mouseY = event.button.y;
+        int targetX = mouseX / 100;
+        int targetY = mouseY / 100;
+        
+        if (board.makeMove(dragStartX, dragStartY, targetX, targetY)) {
+            if (vsComputer && board.current_player_ == computer.getColor()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                makeComputerMove();
+            }
+        }
+        
+        possibleMoves.clear();
+    }
+}
+
+void SDLGame::makeComputerMove() {
+    if (computer.makeMove(board)) {
+        if (board.isCheckmate(computer.getColor() == chess::Color::White ? 
+                            chess::Color::Black : chess::Color::White)) {
+            std::cout << "Checkmate! Computer wins!" << std::endl;
         }
     }
 }
@@ -178,6 +196,11 @@ void SDLGame::handleEvents() {
 void SDLGame::run() {
     while (isRunning) {
         handleEvents();
+        
+        if (vsComputer && board.current_player_ == computer.getColor() && !isDragging) {
+            makeComputerMove();
+        }
+        
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
         
@@ -185,14 +208,14 @@ void SDLGame::run() {
         renderPieces();
         
         SDL_RenderPresent(renderer);
-        SDL_Delay(16); // ~60 FPS
+        SDL_Delay(16);
     }
 }
 
-SDLGame::~SDLGame() {
+void SDLGame::cleanup() {
     if (font) TTF_CloseFont(font);
+    if (renderer) SDL_DestroyRenderer(renderer);
+    if (window) SDL_DestroyWindow(window);
     TTF_Quit();
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
     SDL_Quit();
 }
