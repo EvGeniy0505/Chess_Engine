@@ -45,7 +45,6 @@ void Board::print(bool showHighlights) {
     std::cout << "ШАХ!\n";
   }
 }
-
 bool Board::makeMove(int fromX, int fromY, int toX, int toY, PieceType promotion) {
   if (!isInBounds(fromX, fromY) || !isInBounds(toX, toY)) {
       return false;
@@ -70,11 +69,24 @@ bool Board::makeMove(int fromX, int fromY, int toX, int toY, PieceType promotion
       return false;
   }
 
-  // Взятие на проходе
+  // Взятие на проходе - только если пешка противника только что сделала ход на два поля
   if (piece.type == PieceType::Pawn && toX != fromX && isEmpty(toX, toY)) {
-      grid_[fromY][toX] = Piece(PieceType::None, Color::White, ".");
-  }
-
+    int enPassantRow = (current_player_ == Color::White) ? 3 : 4;
+    if (fromY == enPassantRow) {
+        // Проверяем, что на соседней клетке есть пешка противника
+        if (isEnemy(toX, fromY, current_player_) && 
+            grid_[fromY][toX].type == PieceType::Pawn) {
+            // Удаляем пешку противника
+            grid_[fromY][toX] = Piece(PieceType::None, Color::White, ".");
+        }
+        else {
+            return false;
+        }
+    }
+    else {
+        return false;
+    }
+}
   // Выполняем ход
   Piece movedPiece = piece;
   if (piece.type == PieceType::Pawn && (toY == 0 || toY == 7)) {
@@ -361,34 +373,42 @@ std::vector<std::pair<int, int>> Board::generatePseudoLegalMoves(int x,
   const int enPassantRow = piece.color == Color::White ? 3 : 4;
 
   switch (piece.type) {
-  case PieceType::Pawn: {
-    const int direction = piece.color == Color::White ? -1 : 1;
-
-    if (isEmpty(x, y + direction)) {
-      moves.emplace_back(x, y + direction);
-
-      if (y == startRow && isEmpty(x, y + 2 * direction) &&
-          isEmpty(x, y + direction)) {
-        moves.emplace_back(x, y + 2 * direction);
+    case PieceType::Pawn: {
+      const int direction = piece.color == Color::White ? -1 : 1;
+      const int startRow = piece.color == Color::White ? 6 : 1;
+      const int enPassantRow = piece.color == Color::White ? 3 : 4;
+  
+      // Обычный ход вперед
+      if (isEmpty(x, y + direction)) {
+          moves.emplace_back(x, y + direction);
+  
+          // Ход на две клетки из начальной позиции
+          if (y == startRow && isEmpty(x, y + 2 * direction) && 
+              isEmpty(x, y + direction)) {
+              moves.emplace_back(x, y + 2 * direction);
+          }
       }
-    }
-
-    for (int dx : {-1, 1}) {
-      if (x + dx < 0 || x + dx >= 8)
-        continue;
-
-      if (isEnemy(x + dx, y + direction, piece.color)) {
-        moves.emplace_back(x + dx, y + direction);
+  
+      // Взятия
+      for (int dx : {-1, 1}) {
+          if (x + dx < 0 || x + dx >= 8) continue;
+  
+          // Обычное взятие
+          if (isEnemy(x + dx, y + direction, piece.color)) {
+              moves.emplace_back(x + dx, y + direction);
+          }
+  
+          // Взятие на проходе
+          if (y == enPassantRow && isEnemy(x + dx, y, piece.color) && 
+              grid_[y][x + dx].type == PieceType::Pawn) {
+              // Проверяем, что пешка противника находится на стартовой позиции +1
+              int pawnStartRow = (piece.color == Color::White) ? 1 : 6;
+              if (abs(y - pawnStartRow) == 1) {
+                  moves.emplace_back(x + dx, y + direction);
+              }
+          }
       }
-
-      if (y == enPassantRow) {
-        if (isEnemy(x + dx, y, piece.color) &&
-            grid_[y][x + dx].type == PieceType::Pawn) {
-          moves.emplace_back(x + dx, y + direction);
-        }
-      }
-    }
-    break;
+      break;
   }
 
   case PieceType::Knight: {
