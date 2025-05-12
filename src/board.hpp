@@ -12,12 +12,14 @@ class Board {
 public:
   // Добавляем конструктор с параметром PieceSet и устанавливаем значение по
   // умолчанию
+  Color current_player_ = Color::White;
   Board(PieceSet set = PieceSet::UNICODE);
 
   // Добавляем методы для работы с набором фигур
   void setPieceSet(PieceSet set);
   PieceSet getPieceSet() const;
 
+  const Piece &getPiece(int x, int y) const { return grid_[y][x]; }
   void print(bool showHighlights = false);
   bool makeMove(int fromX, int fromY, int toX, int toY,
                 PieceType promotion = PieceType::None);
@@ -29,7 +31,6 @@ public:
 
 private:
   std::array<std::array<Piece, 8>, 8> grid_;
-  Color current_player_ = Color::White;
   PieceSet piece_set_ =
       PieceSet::UNICODE; // Добавляем поле для хранения текущего набора
 
