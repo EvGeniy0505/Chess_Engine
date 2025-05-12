@@ -24,8 +24,6 @@ enum class PieceType {
 enum class PieceSet {
   UNICODE, // Стандартные Unicode символы
   LETTERS, // Буквенные обозначения (K, Q, R и т.д.)
-  SIMPLE,  // Простые ASCII символы (аналогично LETTERS)
-  FANTASY  // Альтернативные Unicode символы
 };
 
 struct Piece {
