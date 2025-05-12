@@ -4,7 +4,7 @@
 #include <cctype>
 #include <iostream>
 #include <sstream>
-#include <thread>
+// #include <thread>
 #include <vector>
 
 void printHelp() {
@@ -27,15 +27,15 @@ void printHelp() {
 chess::PieceType getPromotionType(char c) {
   switch (tolower(c)) {
   case 'q':
-    return chess::PieceType::Queen;
+    return chess::PieceType::QUEEN;
   case 'r':
-    return chess::PieceType::Rook;
+    return chess::PieceType::ROOK;
   case 'b':
-    return chess::PieceType::Bishop;
+    return chess::PieceType::BISHOP;
   case 'n':
-    return chess::PieceType::Knight;
+    return chess::PieceType::KNIGHT;
   default:
-    return chess::PieceType::Queen;
+    return chess::PieceType::QUEEN;
   }
 }
 
@@ -76,13 +76,13 @@ int main(int argc, char *argv[]) {
 #endif
 
   chess::Board board(pieceSet);
-  chess::ComputerPlayer computer(chess::Color::Black);
+  chess::ComputerPlayer computer(chess::Color::BLACK);
   printHelp();
   board.print();
 
   while (true) {
     // Ход человека
-    if (!vsComputer || board.current_player_ == chess::Color::White) {
+    if (!vsComputer || board.current_player_ == chess::Color::WHITE) {
       std::string input;
       std::cout << "\nВведите команду или ход: ";
       std::getline(std::cin, input);
@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
       int toX = to[0] - 'a';
       int toY = '8' - to[1];
 
-      chess::PieceType promoType = chess::PieceType::None;
+      chess::PieceType promoType = chess::PieceType::NONE;
       if (promotion != '\0') {
         promoType = getPromotionType(promotion);
       }
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
       if (board.makeMove(fromX, fromY, toX, toY, promoType)) {
         board.print();
 
-        if (board.isCheckmate(chess::Color::Black)) {
+        if (board.isCheckmate(chess::Color::BLACK)) {
           std::cout << "Мат! Белые победили!\n";
           break;
         }
@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
     // Ход компьютера
     else {
       std::cout << "\nХод компьютера...\n";
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+      // std::this_thread::sleep_for(std::chrono::seconds(1));
 
       if (!computer.makeMove(board)) {
         std::cout << "У компьютера нет возможных ходов!\n";
@@ -168,7 +168,7 @@ int main(int argc, char *argv[]) {
 
       board.print();
 
-      if (board.isCheckmate(chess::Color::White)) {
+      if (board.isCheckmate(chess::Color::WHITE)) {
         std::cout << "Мат! Чёрные победили!\n";
         break;
       }

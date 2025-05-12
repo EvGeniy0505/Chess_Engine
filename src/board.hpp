@@ -12,7 +12,7 @@ class Board {
 public:
   // Добавляем конструктор с параметром PieceSet и устанавливаем значение по
   // умолчанию
-  Color current_player_ = Color::White;
+  Color current_player_ = Color::WHITE;
   Board(PieceSet set = PieceSet::UNICODE);
 
   // Добавляем методы для работы с набором фигур
@@ -22,7 +22,7 @@ public:
   const Piece &getPiece(int x, int y) const { return grid_[y][x]; }
   void print(bool showHighlights = false);
   bool makeMove(int fromX, int fromY, int toX, int toY,
-                PieceType promotion = PieceType::None);
+                PieceType promotion = PieceType::NONE);
   bool isCheck(Color player) const;
   bool isCheckmate(Color player);
   std::vector<std::pair<int, int>> getPossibleMoves(int x, int y) const;

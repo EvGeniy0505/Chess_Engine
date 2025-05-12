@@ -22,7 +22,7 @@ void Board::print(bool showHighlights) {
       piece.cell_color = ((x + y) % 2) ? CellColor::BLACK : CellColor::WHITE;
 
       // Подсветка ходов
-      if (showHighlights && piece.type == PieceType::Highlight) {
+      if (showHighlights && piece.type == PieceType::HIGHLIGHT) {
         piece.cell_color = ((x + y) % 2) ? CellColor::HIGHLIGHT_BLACK
                                          : CellColor::HIGHLIGHT_WHITE;
       }
@@ -40,7 +40,7 @@ void Board::print(bool showHighlights) {
 
   // Дополнительная информация
   std::cout << "Текущий игрок: "
-            << (current_player_ == Color::White ? "Белые" : "Чёрные") << "\n";
+            << (current_player_ == Color::WHITE ? "Белые" : "Чёрные") << "\n";
   if (isCheck(current_player_)) {
     std::cout << "ШАХ!\n";
   }
@@ -53,11 +53,11 @@ bool Board::makeMove(int fromX, int fromY, int toX, int toY,
   }
 
   Piece &piece = grid_[fromY][fromX];
-  if (piece.type == PieceType::None || piece.color != current_player_) {
+  if (piece.type == PieceType::NONE || piece.color != current_player_) {
     return false;
   }
 
-  if (piece.type == PieceType::King && abs(fromX - toX) == 2) {
+  if (piece.type == PieceType::KING && abs(fromX - toX) == 2) {
     return castle(fromX, fromY, toX, toY);
   }
 
@@ -67,30 +67,30 @@ bool Board::makeMove(int fromX, int fromY, int toX, int toY,
     return false;
   }
 
-  if (piece.type == PieceType::Pawn && toX != fromX && isEmpty(toX, toY)) {
-    grid_[fromY][toX] = Piece(PieceType::None, Color::White, ".");
+  if (piece.type == PieceType::PAWN && toX != fromX && isEmpty(toX, toY)) {
+    grid_[fromY][toX] = Piece(PieceType::NONE, Color::WHITE, ".");
   }
 
   Piece movedPiece = piece;
-  if (piece.type == PieceType::Pawn && (toY == 0 || toY == 7)) {
+  if (piece.type == PieceType::PAWN && (toY == 0 || toY == 7)) {
     movedPiece.type =
-        promotion == PieceType::None ? PieceType::Queen : promotion;
+        promotion == PieceType::NONE ? PieceType::QUEEN : promotion;
     movedPiece.display = getPieceSymbol(movedPiece.type, movedPiece.color);
   }
 
   grid_[toY][toX] = movedPiece;
-  grid_[fromY][fromX] = Piece(PieceType::None, Color::White, ".");
+  grid_[fromY][fromX] = Piece(PieceType::NONE, Color::WHITE, ".");
 
   updateCastlingState(fromX, fromY);
 
   if (isCheck(current_player_)) {
     grid_[fromY][fromX] = piece;
-    grid_[toY][toX] = Piece(PieceType::None, Color::White, ".");
+    grid_[toY][toX] = Piece(PieceType::NONE, Color::WHITE, ".");
     return false;
   }
 
   current_player_ =
-      (current_player_ == Color::White) ? Color::Black : Color::White;
+      (current_player_ == Color::WHITE) ? Color::BLACK : Color::WHITE;
   return true;
 }
 
@@ -101,7 +101,7 @@ bool Board::castle(int kingX, int kingY, int toX, int toY) {
   int direction = (toX > kingX) ? 1 : -1;
   int rookX = (direction > 0) ? 7 : 0;
 
-  if (grid_[kingY][rookX].type != PieceType::Rook ||
+  if (grid_[kingY][rookX].type != PieceType::ROOK ||
       grid_[kingY][rookX].color != current_player_) {
     return false;
   }
@@ -113,20 +113,20 @@ bool Board::castle(int kingX, int kingY, int toX, int toY) {
 
   for (int x = kingX; x != toX + direction; x += direction) {
     if (isSquareAttacked(x, kingY,
-                         current_player_ == Color::White ? Color::Black
-                                                         : Color::White)) {
+                         current_player_ == Color::WHITE ? Color::BLACK
+                                                         : Color::WHITE)) {
       return false;
     }
   }
 
   grid_[kingY][toX] = grid_[kingY][kingX];
-  grid_[kingY][kingX] = Piece(PieceType::None, Color::White, ".");
+  grid_[kingY][kingX] = Piece(PieceType::NONE, Color::WHITE, ".");
 
   int rookNewX = (direction > 0) ? toX - 1 : toX + 1;
   grid_[kingY][rookNewX] = grid_[kingY][rookX];
-  grid_[kingY][rookX] = Piece(PieceType::None, Color::White, ".");
+  grid_[kingY][rookX] = Piece(PieceType::NONE, Color::WHITE, ".");
 
-  if (current_player_ == Color::White) {
+  if (current_player_ == Color::WHITE) {
     white_king_moved_ = true;
     if (direction > 0)
       white_kingside_rook_moved_ = true;
@@ -141,20 +141,20 @@ bool Board::castle(int kingX, int kingY, int toX, int toY) {
   }
 
   current_player_ =
-      (current_player_ == Color::White) ? Color::Black : Color::White;
+      (current_player_ == Color::WHITE) ? Color::BLACK : Color::WHITE;
 
   return true;
 }
 
 void Board::updateCastlingState(int x, int y) {
   Piece &piece = grid_[y][x];
-  if (piece.type == PieceType::King) {
-    if (piece.color == Color::White)
+  if (piece.type == PieceType::KING) {
+    if (piece.color == Color::WHITE)
       white_king_moved_ = true;
     else
       black_king_moved_ = true;
-  } else if (piece.type == PieceType::Rook) {
-    if (piece.color == Color::White) {
+  } else if (piece.type == PieceType::ROOK) {
+    if (piece.color == Color::WHITE) {
       if (x == 0 && y == 7)
         white_queenside_rook_moved_ = true;
       if (x == 7 && y == 7)
@@ -171,7 +171,7 @@ void Board::updateCastlingState(int x, int y) {
 bool Board::isSquareAttacked(int x, int y, Color byColor) const {
   for (int i = 0; i < 8; ++i) {
     for (int j = 0; j < 8; ++j) {
-      if (grid_[i][j].type != PieceType::None && grid_[i][j].color == byColor) {
+      if (grid_[i][j].type != PieceType::NONE && grid_[i][j].color == byColor) {
         auto moves = generatePseudoLegalMoves(j, i);
         if (std::find(moves.begin(), moves.end(), std::make_pair(x, y)) !=
             moves.end()) {
@@ -187,7 +187,7 @@ bool Board::isCheck(Color player) const {
   int kingX = -1, kingY = -1;
   for (int y = 0; y < 8; ++y) {
     for (int x = 0; x < 8; ++x) {
-      if (grid_[y][x].type == PieceType::King && grid_[y][x].color == player) {
+      if (grid_[y][x].type == PieceType::KING && grid_[y][x].color == player) {
         kingX = x;
         kingY = y;
         break;
@@ -198,7 +198,7 @@ bool Board::isCheck(Color player) const {
   if (kingX == -1)
     return false;
   return isSquareAttacked(kingX, kingY,
-                          player == Color::White ? Color::Black : Color::White);
+                          player == Color::WHITE ? Color::BLACK : Color::WHITE);
 }
 
 bool Board::isCheckmate(Color player) {
@@ -207,7 +207,7 @@ bool Board::isCheckmate(Color player) {
 
   for (int y = 0; y < 8; ++y) {
     for (int x = 0; x < 8; ++x) {
-      if (grid_[y][x].type != PieceType::None && grid_[y][x].color == player) {
+      if (grid_[y][x].type != PieceType::NONE && grid_[y][x].color == player) {
         auto moves = generatePseudoLegalMoves(x, y);
         for (const auto &[mx, my] : moves) {
           Board tempBoard = *this;
@@ -229,7 +229,7 @@ std::vector<std::pair<int, int>> Board::getPossibleMoves(int x, int y) const {
   std::vector<std::pair<int, int>> validMoves;
 
   const Piece &piece = grid_[y][x];
-  if (piece.type == PieceType::None || piece.color != current_player_) {
+  if (piece.type == PieceType::NONE || piece.color != current_player_) {
     return validMoves;
   }
 
@@ -240,7 +240,7 @@ std::vector<std::pair<int, int>> Board::getPossibleMoves(int x, int y) const {
     }
   }
 
-  if (piece.type == PieceType::King && !isCheck(current_player_)) {
+  if (piece.type == PieceType::KING && !isCheck(current_player_)) {
     if (canCastleKingside(current_player_)) {
       validMoves.emplace_back(x + 2, y);
     }
@@ -253,43 +253,43 @@ std::vector<std::pair<int, int>> Board::getPossibleMoves(int x, int y) const {
 }
 
 bool Board::canCastleKingside(Color player) const {
-  if (player == Color::White) {
+  if (player == Color::WHITE) {
     return !white_king_moved_ && !white_kingside_rook_moved_ && isEmpty(5, 7) &&
-           isEmpty(6, 7) && !isSquareAttacked(4, 7, Color::Black) &&
-           !isSquareAttacked(5, 7, Color::Black);
+           isEmpty(6, 7) && !isSquareAttacked(4, 7, Color::BLACK) &&
+           !isSquareAttacked(5, 7, Color::BLACK);
   } else {
     return !black_king_moved_ && !black_kingside_rook_moved_ && isEmpty(5, 0) &&
-           isEmpty(6, 0) && !isSquareAttacked(4, 0, Color::White) &&
-           !isSquareAttacked(5, 0, Color::White);
+           isEmpty(6, 0) && !isSquareAttacked(4, 0, Color::WHITE) &&
+           !isSquareAttacked(5, 0, Color::WHITE);
   }
 }
 
 bool Board::canCastleQueenside(Color player) const {
-  if (player == Color::White) {
+  if (player == Color::WHITE) {
     return !white_king_moved_ && !white_queenside_rook_moved_ &&
            isEmpty(3, 7) && isEmpty(2, 7) && isEmpty(1, 7) &&
-           !isSquareAttacked(4, 7, Color::Black) &&
-           !isSquareAttacked(3, 7, Color::Black);
+           !isSquareAttacked(4, 7, Color::BLACK) &&
+           !isSquareAttacked(3, 7, Color::BLACK);
   } else {
     return !black_king_moved_ && !black_queenside_rook_moved_ &&
            isEmpty(3, 0) && isEmpty(2, 0) && isEmpty(1, 0) &&
-           !isSquareAttacked(4, 0, Color::White) &&
-           !isSquareAttacked(3, 0, Color::White);
+           !isSquareAttacked(4, 0, Color::WHITE) &&
+           !isSquareAttacked(3, 0, Color::WHITE);
   }
 }
 
 void Board::highlightMoves(const std::vector<std::pair<int, int>> &moves) {
   clearHighlights();
   for (const auto &[x, y] : moves) {
-    grid_[y][x] = Piece(PieceType::Highlight, Color::White, "*");
+    grid_[y][x] = Piece(PieceType::HIGHLIGHT, Color::WHITE, "*");
   }
 }
 
 void Board::clearHighlights() {
   for (auto &row : grid_) {
     for (auto &square : row) {
-      if (square.type == PieceType::Highlight) {
-        square = Piece(PieceType::None, Color::White, ".");
+      if (square.type == PieceType::HIGHLIGHT) {
+        square = Piece(PieceType::NONE, Color::WHITE, ".");
       }
     }
   }
@@ -300,11 +300,11 @@ bool Board::isInBounds(int x, int y) const {
 }
 
 bool Board::isEmpty(int x, int y) const {
-  return isInBounds(x, y) && grid_[y][x].type == PieceType::None;
+  return isInBounds(x, y) && grid_[y][x].type == PieceType::NONE;
 }
 
 bool Board::isEnemy(int x, int y, Color allyColor) const {
-  return isInBounds(x, y) && grid_[y][x].type != PieceType::None &&
+  return isInBounds(x, y) && grid_[y][x].type != PieceType::NONE &&
          grid_[y][x].color != allyColor;
 }
 
@@ -314,13 +314,13 @@ std::string Board::getPieceSymbol(PieceType type, Color color) const {
       {"♟", "♞", "♝", "♜", "♛", "♚"}  // Чёрные
   };
 
-  if (type == PieceType::None)
+  if (type == PieceType::NONE)
     return ".";
-  if (type == PieceType::Highlight)
+  if (type == PieceType::HIGHLIGHT)
     return "*";
 
   int idx = static_cast<int>(type) - 1;
-  return symbols[color == Color::White ? 0 : 1][idx];
+  return symbols[color == Color::WHITE ? 0 : 1][idx];
 }
 
 std::vector<std::pair<int, int>> Board::generatePseudoLegalMoves(int x,
@@ -330,17 +330,17 @@ std::vector<std::pair<int, int>> Board::generatePseudoLegalMoves(int x,
     return moves;
 
   const Piece &piece = grid_[y][x];
-  if (piece.type == PieceType::None)
+  if (piece.type == PieceType::NONE)
     return moves;
 
   const Color enemyColor =
-      piece.color == Color::White ? Color::Black : Color::White;
-  const int startRow = piece.color == Color::White ? 6 : 1;
-  const int enPassantRow = piece.color == Color::White ? 3 : 4;
+      piece.color == Color::WHITE ? Color::BLACK : Color::WHITE;
+  const int startRow = piece.color == Color::WHITE ? 6 : 1;
+  const int enPassantRow = piece.color == Color::WHITE ? 3 : 4;
 
   switch (piece.type) {
-  case PieceType::Pawn: {
-    const int direction = piece.color == Color::White ? -1 : 1;
+  case PieceType::PAWN: {
+    const int direction = piece.color == Color::WHITE ? -1 : 1;
 
     if (isEmpty(x, y + direction)) {
       moves.emplace_back(x, y + direction);
@@ -361,7 +361,7 @@ std::vector<std::pair<int, int>> Board::generatePseudoLegalMoves(int x,
 
       if (y == enPassantRow) {
         if (isEnemy(x + dx, y, piece.color) &&
-            grid_[y][x + dx].type == PieceType::Pawn) {
+            grid_[y][x + dx].type == PieceType::PAWN) {
           moves.emplace_back(x + dx, y + direction);
         }
       }
@@ -369,7 +369,7 @@ std::vector<std::pair<int, int>> Board::generatePseudoLegalMoves(int x,
     break;
   }
 
-  case PieceType::Knight: {
+  case PieceType::KNIGHT: {
     constexpr std::array<std::pair<int, int>, 8> offsets = {{{1, 2},
                                                              {2, 1},
                                                              {-1, 2},
@@ -390,7 +390,7 @@ std::vector<std::pair<int, int>> Board::generatePseudoLegalMoves(int x,
     break;
   }
 
-  case PieceType::Bishop: {
+  case PieceType::BISHOP: {
     constexpr std::array<std::pair<int, int>, 4> directions = {
         {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}}};
 
@@ -414,7 +414,7 @@ std::vector<std::pair<int, int>> Board::generatePseudoLegalMoves(int x,
     break;
   }
 
-  case PieceType::Rook: {
+  case PieceType::ROOK: {
     constexpr std::array<std::pair<int, int>, 4> directions = {
         {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}};
 
@@ -438,7 +438,7 @@ std::vector<std::pair<int, int>> Board::generatePseudoLegalMoves(int x,
     break;
   }
 
-  case PieceType::Queen: {
+  case PieceType::QUEEN: {
     constexpr std::array<std::pair<int, int>, 8> directions = {
         {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}}};
 
@@ -462,7 +462,7 @@ std::vector<std::pair<int, int>> Board::generatePseudoLegalMoves(int x,
     break;
   }
 
-  case PieceType::King: {
+  case PieceType::KING: {
     constexpr std::array<std::pair<int, int>, 8> offsets = {
         {{1, 1}, {1, 0}, {1, -1}, {0, 1}, {0, -1}, {-1, 1}, {-1, 0}, {-1, -1}}};
 
@@ -487,50 +487,50 @@ std::vector<std::pair<int, int>> Board::generatePseudoLegalMoves(int x,
 void Board::initializeBoard() {
   for (auto &row : grid_) {
     for (auto &square : row) {
-      square = Piece(PieceType::None, Color::White, ".");
+      square = Piece(PieceType::NONE, Color::WHITE, ".");
     }
   }
 
   for (int x = 0; x < 8; ++x) {
-    grid_[1][x] = {PieceType::Pawn, Color::Black,
-                   getPieceSymbol(PieceType::Pawn, Color::Black)};
-    grid_[6][x] = {PieceType::Pawn, Color::White,
-                   getPieceSymbol(PieceType::Pawn, Color::White)};
+    grid_[1][x] = {PieceType::PAWN, Color::BLACK,
+                   getPieceSymbol(PieceType::PAWN, Color::BLACK)};
+    grid_[6][x] = {PieceType::PAWN, Color::WHITE,
+                   getPieceSymbol(PieceType::PAWN, Color::WHITE)};
   }
 
-  grid_[0][0] = {PieceType::Rook, Color::Black,
-                 getPieceSymbol(PieceType::Rook, Color::Black)};
-  grid_[0][1] = {PieceType::Knight, Color::Black,
-                 getPieceSymbol(PieceType::Knight, Color::Black)};
-  grid_[0][2] = {PieceType::Bishop, Color::Black,
-                 getPieceSymbol(PieceType::Bishop, Color::Black)};
-  grid_[0][3] = {PieceType::Queen, Color::Black,
-                 getPieceSymbol(PieceType::Queen, Color::Black)};
-  grid_[0][4] = {PieceType::King, Color::Black,
-                 getPieceSymbol(PieceType::King, Color::Black)};
-  grid_[0][5] = {PieceType::Bishop, Color::Black,
-                 getPieceSymbol(PieceType::Bishop, Color::Black)};
-  grid_[0][6] = {PieceType::Knight, Color::Black,
-                 getPieceSymbol(PieceType::Knight, Color::Black)};
-  grid_[0][7] = {PieceType::Rook, Color::Black,
-                 getPieceSymbol(PieceType::Rook, Color::Black)};
+  grid_[0][0] = {PieceType::ROOK, Color::BLACK,
+                 getPieceSymbol(PieceType::ROOK, Color::BLACK)};
+  grid_[0][1] = {PieceType::KNIGHT, Color::BLACK,
+                 getPieceSymbol(PieceType::KNIGHT, Color::BLACK)};
+  grid_[0][2] = {PieceType::BISHOP, Color::BLACK,
+                 getPieceSymbol(PieceType::BISHOP, Color::BLACK)};
+  grid_[0][3] = {PieceType::QUEEN, Color::BLACK,
+                 getPieceSymbol(PieceType::QUEEN, Color::BLACK)};
+  grid_[0][4] = {PieceType::KING, Color::BLACK,
+                 getPieceSymbol(PieceType::KING, Color::BLACK)};
+  grid_[0][5] = {PieceType::BISHOP, Color::BLACK,
+                 getPieceSymbol(PieceType::BISHOP, Color::BLACK)};
+  grid_[0][6] = {PieceType::KNIGHT, Color::BLACK,
+                 getPieceSymbol(PieceType::KNIGHT, Color::BLACK)};
+  grid_[0][7] = {PieceType::ROOK, Color::BLACK,
+                 getPieceSymbol(PieceType::ROOK, Color::BLACK)};
 
-  grid_[7][0] = {PieceType::Rook, Color::White,
-                 getPieceSymbol(PieceType::Rook, Color::White)};
-  grid_[7][1] = {PieceType::Knight, Color::White,
-                 getPieceSymbol(PieceType::Knight, Color::White)};
-  grid_[7][2] = {PieceType::Bishop, Color::White,
-                 getPieceSymbol(PieceType::Bishop, Color::White)};
-  grid_[7][3] = {PieceType::Queen, Color::White,
-                 getPieceSymbol(PieceType::Queen, Color::White)};
-  grid_[7][4] = {PieceType::King, Color::White,
-                 getPieceSymbol(PieceType::King, Color::White)};
-  grid_[7][5] = {PieceType::Bishop, Color::White,
-                 getPieceSymbol(PieceType::Bishop, Color::White)};
-  grid_[7][6] = {PieceType::Knight, Color::White,
-                 getPieceSymbol(PieceType::Knight, Color::White)};
-  grid_[7][7] = {PieceType::Rook, Color::White,
-                 getPieceSymbol(PieceType::Rook, Color::White)};
+  grid_[7][0] = {PieceType::ROOK, Color::WHITE,
+                 getPieceSymbol(PieceType::ROOK, Color::WHITE)};
+  grid_[7][1] = {PieceType::KNIGHT, Color::WHITE,
+                 getPieceSymbol(PieceType::KNIGHT, Color::WHITE)};
+  grid_[7][2] = {PieceType::BISHOP, Color::WHITE,
+                 getPieceSymbol(PieceType::BISHOP, Color::WHITE)};
+  grid_[7][3] = {PieceType::QUEEN, Color::WHITE,
+                 getPieceSymbol(PieceType::QUEEN, Color::WHITE)};
+  grid_[7][4] = {PieceType::KING, Color::WHITE,
+                 getPieceSymbol(PieceType::KING, Color::WHITE)};
+  grid_[7][5] = {PieceType::BISHOP, Color::WHITE,
+                 getPieceSymbol(PieceType::BISHOP, Color::WHITE)};
+  grid_[7][6] = {PieceType::KNIGHT, Color::WHITE,
+                 getPieceSymbol(PieceType::KNIGHT, Color::WHITE)};
+  grid_[7][7] = {PieceType::ROOK, Color::WHITE,
+                 getPieceSymbol(PieceType::ROOK, Color::WHITE)};
 
   white_king_moved_ = false;
   white_kingside_rook_moved_ = false;

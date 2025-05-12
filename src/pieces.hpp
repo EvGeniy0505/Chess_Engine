@@ -6,19 +6,19 @@
 
 namespace chess {
 
-enum class Color { White, Black };
+enum class Color { WHITE, BLACK };
 
 enum class CellColor { WHITE, BLACK, HIGHLIGHT_WHITE, HIGHLIGHT_BLACK };
 
 enum class PieceType {
-  None,
-  Pawn,
-  Knight,
-  Bishop,
-  Rook,
-  Queen,
-  King,
-  Highlight
+  NONE,
+  PAWN,
+  KNIGHT,
+  BISHOP,
+  ROOK,
+  QUEEN,
+  KING,
+  HIGHLIGHT
 };
 
 enum class PieceSet {
@@ -34,15 +34,15 @@ struct Piece {
   std::string display;
   CellColor cell_color = CellColor::WHITE; // Добавляем цвет клетки
 
-  Piece() : type(PieceType::None), color(Color::White), display(".") {}
+  Piece() : type(PieceType::NONE), color(Color::WHITE), display(".") {}
   Piece(PieceType t, Color c, const std::string &d)
       : type(t), color(c), display(d) {}
 
   std::string getSymbol(PieceSet set = PieceSet::UNICODE) const {
-    if (type == PieceType::Highlight)
+    if (type == PieceType::HIGHLIGHT)
       return display;
 
-    if (type == PieceType::None)
+    if (type == PieceType::NONE)
       return ".";
 
     static const std::map<PieceSet, std::vector<std::vector<std::string>>>
@@ -58,7 +58,7 @@ struct Piece {
                     }}};
 
     int idx = static_cast<int>(type) - 1;
-    return symbols.at(set)[color == Color::White ? 0 : 1][idx];
+    return symbols.at(set)[color == Color::WHITE ? 0 : 1][idx];
   }
 
   std::string getColoredSymbol(PieceSet set = PieceSet::UNICODE) const {
@@ -70,18 +70,18 @@ struct Piece {
     switch (cell_color) {
     case CellColor::WHITE:
       bg_code = "48;5;237"; // Тёмно-серый
-      fg_code = (color == Color::White) ? "38;5;15" : "38;5;250";
+      fg_code = (color == Color::WHITE) ? "38;5;15" : "38;5;250";
       break;
 
     case CellColor::BLACK:
       bg_code = "48;5;236"; // Почти тёмный
-      fg_code = (color == Color::White) ? "38;5;15" : "38;5;245";
+      fg_code = (color == Color::WHITE) ? "38;5;15" : "38;5;245";
       break;
 
     case CellColor::HIGHLIGHT_WHITE:
     case CellColor::HIGHLIGHT_BLACK:
       bg_code = "48;5;238"; // Тёмно-серый с подсветкой
-      fg_code = (color == Color::White) ? "38;5;15" : "38;5;250";
+      fg_code = (color == Color::WHITE) ? "38;5;15" : "38;5;250";
       break;
     }
 

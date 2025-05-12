@@ -1,22 +1,15 @@
 #pragma once
-#include "board.hpp"
-#include <optional>
-#include <random>
+#include "ai_move_generator.hpp"
 
 namespace chess {
 
 class ComputerPlayer {
 public:
-  ComputerPlayer(Color color) : color_(color) {}
-
-  std::optional<std::tuple<int, int, int, int>>
-  generateMove(const Board &board);
+  ComputerPlayer(Color color, int difficulty = 2);
   bool makeMove(Board &board);
 
 private:
-  Color color_;
-  std::random_device rd_;
-  std::mt19937 gen_{rd_()};
+  AIMoveGenerator moveGenerator;
 };
 
 } // namespace chess
