@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pieces.hpp"
+#include "pieces/piece.hpp"
 #include <array>
 #include <string>
 #include <utility>

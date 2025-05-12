@@ -30,7 +30,7 @@ struct Piece {
   PieceType type;
   Color color;
   std::string display;
-  CellColor cell_color = CellColor::WHITE; // Добавляем цвет клетки
+  CellColor cell_color = CellColor::WHITE;
 
   Piece() : type(PieceType::NONE), color(Color::WHITE), display(".") {}
   Piece(PieceType t, Color c, const std::string &d)

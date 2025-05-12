@@ -93,7 +93,7 @@ int AIMoveGenerator::calculateBoardScore(const Board &board) {
       const auto &piece = board.getPiece(x, y);
       int pieceValue = 0;
 
-      switch (piece.type) {
+      switch (piece.getType()) {  // Changed from piece.type to piece.getType()
       case PieceType::PAWN:
         pieceValue = 100;
         break;
@@ -116,7 +116,7 @@ int AIMoveGenerator::calculateBoardScore(const Board &board) {
         break;
       }
 
-      score += (piece.color == ai_color) ? pieceValue : -pieceValue;
+      score += (piece.getColor() == ai_color) ? pieceValue : -pieceValue;  // Changed from piece.color to piece.getColor()
     }
   }
 
@@ -137,7 +137,7 @@ AIMoveGenerator::generateAllMoves(const Board &board, Color color) {
 
   for (int y = 0; y < 8; ++y) {
     for (int x = 0; x < 8; ++x) {
-      if (board.getPiece(x, y).color == color) {
+      if (board.getPiece(x, y).getColor() == color) {  // Changed from piece.color to piece.getColor()
         auto pieceMoves = board.getPossibleMoves(x, y);
         for (const auto &[toX, toY] : pieceMoves) {
           moves.emplace_back(x, y, toX, toY);
