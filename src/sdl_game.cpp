@@ -7,7 +7,7 @@ SDLGame::SDLGame(bool vsComputer, chess::Color computerColor)
     : window(nullptr), renderer(nullptr), font(nullptr), piecesTexture(nullptr),
       isRunning(true), isDragging(false), vsComputer(vsComputer),
       dragStartX(-1), dragStartY(-1), computer(computerColor),
-      board(chess::PieceSet::UNICODE) {
+      board(chess::PieceSet::UNICODE), gameOver(false) {
     initSDL();
 }
 
@@ -173,6 +173,19 @@ void SDLGame::handleEvents() {
 }
 
 void SDLGame::handleMouseDown(const SDL_Event& event) {
+
+    if (gameOver) {
+        if (isNewGameButtonClicked(event.button.x, event.button.y)) {
+            // Начинаем новую игру
+            gameOver = false;
+            board = chess::Board(chess::PieceSet::UNICODE);
+            if (vsComputer && computer.getColor() == chess::Color::White) {
+                makeComputerMove(); // Компьютер ходит первым
+            }
+        }
+        return;
+    }
+
     if ((!vsComputer || board.current_player_ != computer.getColor()) && 
         event.button.button == SDL_BUTTON_LEFT) {
         
@@ -233,8 +246,22 @@ void SDLGame::run() {
     while (isRunning) {
         handleEvents();
         
-        if (vsComputer && board.current_player_ == computer.getColor() && !isDragging) {
-            makeComputerMove();
+        if (!gameOver) {
+            if (vsComputer && board.current_player_ == computer.getColor() && !isDragging) {
+                makeComputerMove();
+            }
+            
+            // Проверка окончания игры
+            if (board.isCheckmate(chess::Color::White)) {
+                gameOver = true;
+                gameOverMessage = "Чёрные победили! Это мааааат!";
+            } else if (board.isCheckmate(chess::Color::Black)) {
+                gameOver = true;
+                gameOverMessage = "Белые победили! Это мааааат!";
+            } else if (board.isStalemate(board.current_player_)) {
+                gameOver = true;
+                gameOverMessage = "Пат! Ничья!";
+            }
         }
         
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -242,6 +269,7 @@ void SDLGame::run() {
         
         renderBoard();
         renderPieces();
+        renderGameOverMessage();
         
         SDL_RenderPresent(renderer);
         SDL_Delay(16);
@@ -257,4 +285,113 @@ void SDLGame::cleanup() {
     IMG_Quit();
     TTF_Quit();
     SDL_Quit();
+}
+
+// В sdl_game.cpp в методе renderGameOverMessage()
+
+void SDLGame::renderGameOverMessage() {
+    if (!gameOver) return;
+
+    // Создаем полупрозрачный прямоугольник
+    SDL_Rect overlay = {100, 340, 600, 200};
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200);
+    SDL_RenderFillRect(renderer, &overlay);
+
+    // Инициализируем шрифт (добавляем проверку и fallback)
+    if (!font) {
+        // Пробуем несколько путей к шрифту
+        const char* fontPaths[] = {
+            "arial.ttf",                         // Текущая директория
+            "../assets/fonts/arial.ttf",         // Относительный путь
+            "/usr/share/fonts/truetype/arial.ttf" // Абсолютный путь в Linux
+        };
+        
+        for (const auto& path : fontPaths) {
+            font = TTF_OpenFont(path, 36);
+            if (font) break;
+        }
+        
+        if (!font) {
+            std::cerr << "Failed to load font: " << TTF_GetError() << std::endl;
+            // Fallback - используем простой прямоугольник с рамкой
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            SDL_RenderDrawRect(renderer, &overlay);
+            return;
+        }
+    }
+
+    // Создаем текст в UTF-8 (важно для русского языка)
+    const char* message = nullptr;
+    if (gameOverMessage == "Чёрные победили! Это мааааат!") {
+        message = u8"Чёрные победили! Это мааааат!";
+    } else if (gameOverMessage == "Белые победили! Это мааааат!") {
+        message = u8"Белые победили! Это мааааат!";
+    } else {
+        message = u8"Это паааат! Ничья!";
+    }
+
+    SDL_Color white = {255, 255, 255, 255};
+    SDL_Surface* surface = TTF_RenderUTF8_Blended(font, message, white);
+    if (!surface) {
+        std::cerr << "Failed to render text: " << TTF_GetError() << std::endl;
+        return;
+    }
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (!texture) {
+        SDL_FreeSurface(surface);
+        return;
+    }
+
+    // Рендерим текст по центру
+    SDL_Rect textRect = {
+        400 - surface->w / 2,
+        400 - surface->h / 2,
+        surface->w,
+        surface->h
+    };
+    SDL_RenderCopy(renderer, texture, NULL, &textRect);
+
+    // Освобождаем ресурсы
+    SDL_DestroyTexture(texture);
+    SDL_FreeSurface(surface);
+
+    renderNewGameButton();
+}
+
+void SDLGame::renderNewGameButton() {
+    SDL_Color buttonColor = {70, 70, 200, 255};
+    SDL_Rect buttonRect = {300, 450, 200, 50};
+    
+    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, 255);
+    SDL_RenderFillRect(renderer, &buttonRect);
+    
+    // Белая рамка
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderDrawRect(renderer, &buttonRect);
+    
+    // Текст кнопки
+    if (font) {
+        SDL_Surface* textSurface = TTF_RenderUTF8_Blended(font, u8"Новая игра", {255, 255, 255, 255});
+        if (textSurface) {
+            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+            if (textTexture) {
+                SDL_Rect textRect = {
+                    400 - textSurface->w/2,
+                    475 - textSurface->h/2,
+                    textSurface->w,
+                    textSurface->h
+                };
+                SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+                SDL_DestroyTexture(textTexture);
+            }
+            SDL_FreeSurface(textSurface);
+        }
+    }
+}
+
+bool SDLGame::isNewGameButtonClicked(int x, int y) {
+    SDL_Rect buttonRect = {300, 450, 200, 50};
+    return (x >= buttonRect.x && x <= buttonRect.x + buttonRect.w &&
+            y >= buttonRect.y && y <= buttonRect.y + buttonRect.h);
 }

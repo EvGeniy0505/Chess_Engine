@@ -23,7 +23,12 @@ private:
     void handleMouseUp(const SDL_Event& event);
     void makeComputerMove();
     void cleanup();
+    void renderGameOverMessage();
+    void renderNewGameButton();
+    bool isNewGameButtonClicked(int x, int y);
 
+    bool gameOver;
+    std::string gameOverMessage;
     SDL_Window* window;
     SDL_Renderer* renderer;
     TTF_Font* font;

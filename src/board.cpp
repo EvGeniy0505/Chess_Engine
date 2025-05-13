@@ -582,4 +582,26 @@ void Board::initializeBoard() {
   black_queenside_rook_moved_ = false;
 }
 
+bool Board::isStalemate(Color player) {
+  if (isCheck(player)) {
+      return false; // Если шах - это не пат
+  }
+
+  for (int y = 0; y < 8; ++y) {
+      for (int x = 0; x < 8; ++x) {
+          if (grid_[y][x].type != PieceType::None && grid_[y][x].color == player) {
+              auto moves = generatePseudoLegalMoves(x, y);
+              for (const auto& [mx, my] : moves) {
+                  Board tempBoard = *this;
+                  if (tempBoard.makeMove(x, y, mx, my)) {
+                      return false; // Найден хотя бы один допустимый ход
+                  }
+              }
+          }
+      }
+  }
+
+  return true; // Нет допустимых ходов
+}
+
 } // namespace chess
