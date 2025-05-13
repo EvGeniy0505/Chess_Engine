@@ -52,25 +52,24 @@ bool CheckValidator::is_checkmate(Board &board, Color player) {
 }
 
 bool CheckValidator::is_attacked(const Board &board, std::pair<int, int> square,
-    Color by_color) {
-for (int y = 0; y < 8; ++y) {
-for (int x = 0; x < 8; ++x) {
-// Используйте get_piece вместо прямого доступа к grid_
-const auto &piece = board.get_piece({x, y});
-if (piece.get_type() != PieceType::NONE &&
-piece.get_color() == by_color) {
-auto moves =
-MoveGenerator::generate_pseudo_legal_moves(board, {x, y});
-auto it = std::find_if(moves.begin(), moves.end(),
-[&square](const auto& move) { 
-return move == square; 
-});
-if (it != moves.end()) {
-return true;
-}
-}
-}
-}
-return false;
+                                 Color by_color) {
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+            // Используйте get_piece вместо прямого доступа к grid_
+            const auto &piece = board.get_piece({x, y});
+            if (piece.get_type() != PieceType::NONE &&
+                piece.get_color() == by_color) {
+                auto moves =
+                    MoveGenerator::generate_pseudo_legal_moves(board, {x, y});
+                auto it = std::find_if(
+                    moves.begin(), moves.end(),
+                    [&square](const auto &move) { return move == square; });
+                if (it != moves.end()) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }
 } // namespace chess

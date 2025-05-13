@@ -26,7 +26,6 @@ class Board {
     bool is_empty(std::pair<int, int> square) const;
     bool is_enemy(std::pair<int, int> square, Color ally_color) const;
 
-
     // Accessors
     const Piece &get_piece(std::pair<int, int> square) const {
         return grid_[square.second][square.first];

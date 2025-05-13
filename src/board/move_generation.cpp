@@ -1,6 +1,6 @@
 #include "board/move_generation.hpp"
-#include "board/check.hpp"
 #include "board/castling.hpp"
+#include "board/check.hpp"
 #include <algorithm>
 
 namespace chess {
@@ -61,6 +61,36 @@ void add_knight_moves(const Board &board,
         if (x >= 0 && x < 8 && y >= 0 && y < 8 &&
             (board.is_empty({x, y}) ||
              board.is_enemy({x, y}, piece.get_color()))) {
+            moves.emplace_back(x, y);
+        }
+    }
+}
+
+void add_king_moves(const Board &board, std::vector<std::pair<int, int>> &moves,
+                    std::pair<int, int> pos) {
+    static const std::array<std::pair<int, int>, 8> directions = {
+        {{1, 1},    // вправо-вверх
+         {1, 0},    // вправо
+         {1, -1},   // вправо-вниз
+         {0, 1},    // вверх
+         {0, -1},   // вниз
+         {-1, 1},   // влево-вверх  ← ЭТОТ ХОД РАНЬШЕ НЕ РАБОТАЛ
+         {-1, 0},   // влево
+         {-1, -1}}}; // влево-вниз
+
+    const auto &piece = board.get_piece(pos);
+    for (const auto &[dx, dy] : directions) {
+        int x = pos.first + dx;
+        int y = pos.second + dy;
+
+        // Проверяем границы доски
+        if (x < 0 || x >= 8 || y < 0 || y >= 8) {
+            continue;
+        }
+
+        // Клетка должна быть пустой или содержать вражескую фигуру
+        if (board.is_empty({x, y}) ||
+            board.is_enemy({x, y}, piece.get_color())) {
             moves.emplace_back(x, y);
         }
     }
@@ -141,17 +171,7 @@ MoveGenerator::generate_pseudo_legal_moves(const Board &board,
         }
 
         case PieceType::KING: {
-            static const std::array<std::pair<int, int>, 8> king_dirs = {
-                {{1, 1},
-                 {1, 0},
-                 {1, -1},
-                 {0, 1},
-                 {0, -1},
-                 {-1, 1},
-                 {-1, 0},
-                 {-1, -1}}};
-            add_sliding_moves(board, moves, pos, king_dirs.begin(),
-                              king_dirs.end());
+            add_king_moves(board, moves, pos);
             break;
         }
 
@@ -170,21 +190,21 @@ MoveGenerator::get_legal_moves(const Board &board, std::pair<int, int> pos) {
 
     // Создаем копию доски для проверки ходов
     Board temp_board = board;
-    
+
     for (const auto &move : pseudo_legal) {
         // Сохраняем оригинальное состояние
         Piece original_from = temp_board.get_piece(pos);
         Piece original_to = temp_board.get_piece(move);
-        
+
         // Выполняем временный ход
         temp_board.grid_[move.second][move.first] = original_from;
         temp_board.grid_[pos.second][pos.first] = Piece();
-        
+
         // Проверяем, остается ли король под шахом
         if (!CheckValidator::is_check(temp_board, piece.get_color())) {
             legal_moves.push_back(move);
         }
-        
+
         // Восстанавливаем оригинальное состояние
         temp_board.grid_[pos.second][pos.first] = original_from;
         temp_board.grid_[move.second][move.first] = original_to;

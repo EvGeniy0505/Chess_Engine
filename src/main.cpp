@@ -1,11 +1,11 @@
 #include "board/board.hpp"
-#include "engine.hpp"
+#include "engine/computer_player.hpp"
+#include "engine/move_generator.hpp" // Добавляем этот include
 #include <algorithm>
 #include <cctype>
 #include <iostream>
+#include <memory> // Для std::make_unique
 #include <sstream>
-// #include <thread>
-#include <vector>
 
 void printHelp() {
     std::cout
@@ -77,7 +77,14 @@ int main(int argc, char *argv[]) {
 #endif
 
     chess::Board board(pieceSet);
-    chess::ComputerPlayer computer(chess::Color::BLACK);
+
+    // Создаём компьютерного игрока с генератором ходов
+    auto evaluator = std::make_unique<chess::engine::BasicEvaluator>();
+    auto generator = std::make_unique<chess::engine::MinimaxGenerator>(
+        3, std::move(evaluator));
+    auto computer =
+        chess::engine::ComputerPlayer::create(chess::Color::BLACK, 3);
+
     printHelp();
     board.print();
 
@@ -162,7 +169,7 @@ int main(int argc, char *argv[]) {
             std::cout << "\nХод компьютера...\n";
             // std::this_thread::sleep_for(std::chrono::seconds(1));
 
-            if (!computer.makeMove(board)) {
+            if (!computer->makeMove(board)) {
                 std::cout << "У компьютера нет возможных ходов!\n";
                 break;
             }

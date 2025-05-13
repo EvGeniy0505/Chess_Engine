@@ -13,18 +13,19 @@ Board::Board(PieceSet set) : piece_set_(set) {
 }
 
 bool Board::make_move(std::pair<int, int> from, std::pair<int, int> to,
-    PieceType promotion) {
-// Добавьте проверку на выход за границы
-if (!in_bounds(from.first, from.second) || !in_bounds(to.first, to.second)) {
-return false;
-}
+                      PieceType promotion) {
+    // Добавьте проверку на выход за границы
+    if (!in_bounds(from.first, from.second) ||
+        !in_bounds(to.first, to.second)) {
+        return false;
+    }
 
-// Используйте get_piece вместо прямого доступа к grid_
-const Piece &piece = get_piece(from);
-if (piece.get_type() == PieceType::NONE ||
-piece.get_color() != current_player) {
-return false;
-}
+    // Используйте get_piece вместо прямого доступа к grid_
+    const Piece &piece = get_piece(from);
+    if (piece.get_type() == PieceType::NONE ||
+        piece.get_color() != current_player) {
+        return false;
+    }
 
     // Handle castling
     if (piece.get_type() == PieceType::KING &&
@@ -108,15 +109,16 @@ void Board::print(bool show_highlights) const {
     for (int y = 0; y < 8; ++y) {
         std::cout << 8 - y << " ";
         for (int x = 0; x < 8; ++x) {
-            const Piece& piece = grid_[y][x];
-            CellColor cell_color = (x + y) % 2 ? CellColor::BLACK : CellColor::WHITE;
-            
+            const Piece &piece = grid_[y][x];
+            CellColor cell_color =
+                (x + y) % 2 ? CellColor::BLACK : CellColor::WHITE;
+
             // Если включена подсветка и это клетка подсветки
             if (show_highlights && piece.get_type() == PieceType::HIGHLIGHT) {
-                cell_color = (x + y) % 2 ? CellColor::HIGHLIGHT_BLACK 
-                                        : CellColor::HIGHLIGHT_WHITE;
+                cell_color = (x + y) % 2 ? CellColor::HIGHLIGHT_BLACK
+                                         : CellColor::HIGHLIGHT_WHITE;
             }
-            
+
             // Создаем временную фигуру с правильным цветом клетки
             Piece temp_piece = piece;
             temp_piece.set_cell_color(cell_color);
@@ -125,18 +127,19 @@ void Board::print(bool show_highlights) const {
         std::cout << " " << 8 - y << "\n";
     }
     std::cout << "   a  b  c  d  e  f  g  h\n\n";
-    std::cout << "Current player: " 
+    std::cout << "Current player: "
               << (current_player == Color::WHITE ? "White" : "Black") << "\n";
     if (is_check(current_player)) {
         std::cout << "CHECK!\n";
     }
 }
 
-void Board::highlight_moves(const std::vector<std::pair<int, int>>& moves) {
+void Board::highlight_moves(const std::vector<std::pair<int, int>> &moves) {
     clear_highlights();
-    for (const auto& [x, y] : moves) {
+    for (const auto &[x, y] : moves) {
         if (in_bounds(x, y)) {
             // Подсвечиваем только пустые клетки или клетки с вражескими фигурами
+            // 
             if (is_empty({x, y}) || is_enemy({x, y}, current_player)) {
                 grid_[y][x] = Piece(PieceType::HIGHLIGHT, Color::WHITE);
             }
@@ -145,8 +148,8 @@ void Board::highlight_moves(const std::vector<std::pair<int, int>>& moves) {
 }
 
 void Board::clear_highlights() {
-    for (auto& row : grid_) {
-        for (auto& square : row) {
+    for (auto &row : grid_) {
+        for (auto &square : row) {
             if (square.get_type() == PieceType::HIGHLIGHT) {
                 square = Piece();
             }

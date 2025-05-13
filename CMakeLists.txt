@@ -7,9 +7,9 @@ set(SOURCE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 set(MAIN_SOURCES
     ${SOURCE_ROOT}/main.cpp
-    src/main.cpp
-    src/engine.cpp
-    src/ai_move_generator.cpp
+    src/engine/computer_player.cpp
+    src/engine/move_generator.cpp
+    src/engine/position_evaluator.cpp
 )
 
 set(BOARD_SOURCES
