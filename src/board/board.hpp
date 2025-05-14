@@ -27,6 +27,7 @@ class Board {
     // State queries
     bool is_check(Color player) const;
     bool is_checkmate(Color player);
+    bool is_stalemate(Color player);
     bool is_attacked(std::pair<int, int> square, Color by_color) const;
     bool is_empty(std::pair<int, int> square) const;
     bool is_enemy(std::pair<int, int> square, Color ally_color) const;

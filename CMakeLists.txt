@@ -1,59 +1,60 @@
 cmake_minimum_required(VERSION 3.10)
-project(chess_engine)
+project(ChessEngine)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Базовые пути
 set(SOURCE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-set(MAIN_SOURCES
-    src/engine/computer_player.cpp
-    src/engine/move_generator.cpp
-    src/engine/position_evaluator.cpp
+# Собираем исходники ТОЛЬКО из поддиректорий
+file(GLOB_RECURSE COMMON_SOURCES
+    ${SOURCE_ROOT}/board/*.cpp
+    ${SOURCE_ROOT}/engine/*.cpp
+    ${SOURCE_ROOT}/pieces/*.cpp
+    ${SOURCE_ROOT}/board/*.hpp
+    ${SOURCE_ROOT}/engine/*.hpp
+    ${SOURCE_ROOT}/pieces/*.hpp
 )
 
-set(BOARD_SOURCES
-    ${SOURCE_ROOT}/board/board.cpp
-    ${SOURCE_ROOT}/board/initialization.cpp
-    ${SOURCE_ROOT}/board/move_generation.cpp
-    ${SOURCE_ROOT}/board/castling.cpp
-    ${SOURCE_ROOT}/board/check.cpp
+# Создание таргетов
+add_executable(cli_chess
+    ${SOURCE_ROOT}/cli_main.cpp
+    ${COMMON_SOURCES}
 )
 
- set(PIECES_SOURCES
-     ${SOURCE_ROOT}/pieces/piece.hpp
-     ${SOURCE_ROOT}/pieces/piece_types.hpp
-     ${SOURCE_ROOT}/pieces/piece_symbols.hpp
-     ${SOURCE_ROOT}/pieces/piece_color.hpp
- )
-
-source_group("Pieces" FILES ${PIECES_SOURCES})
-
-add_executable(chess_engine
-    ${SOURCE_ROOT}/main.cpp
-    ${MAIN_SOURCES}
-    ${BOARD_SOURCES}
-    ${PIECES_SOURCES}
+add_executable(gui_chess
+    ${SOURCE_ROOT}/gui_main.cpp
+    ${SOURCE_ROOT}/gui/sdl_game.hpp
+    ${SOURCE_ROOT}/gui/sdl_game.cpp
+    ${COMMON_SOURCES}
 )
 
 add_executable(lichess_bot
     ${SOURCE_ROOT}/lichess_bot.cpp
-    ${MAIN_SOURCES}
-    ${BOARD_SOURCES}
-    ${PIECES_SOURCES}
+    ${COMMON_SOURCES}
 )
 
+# Настройка include-путей
+foreach(TARGET cli_chess gui_chess lichess_bot)
+    target_include_directories(${TARGET} PRIVATE
+        ${SOURCE_ROOT}
+    )
+endforeach()
 
-target_include_directories(chess_engine PRIVATE
-    ${SOURCE_ROOT}
-    ${SOURCE_ROOT}/pieces
-    ${SOURCE_ROOT}/board
-    ${SOURCE_ROOT}/engine
+# Настройка SDL только для gui_chess
+find_package(SDL2 REQUIRED)
+find_package(SDL2_ttf REQUIRED)
+find_package(SDL2_image REQUIRED)
+
+target_include_directories(gui_chess PRIVATE
+    ${SDL2_INCLUDE_DIRS}
+    ${SDL2_IMAGE_INCLUDE_DIRS}
+    ${SDL2_TTF_INCLUDE_DIRS}
 )
 
-target_include_directories(lichess_bot PRIVATE
-    ${SOURCE_ROOT}
-    ${SOURCE_ROOT}/pieces
-    ${SOURCE_ROOT}/board
-    ${SOURCE_ROOT}/engine
+target_link_libraries(gui_chess PRIVATE
+    SDL2
+    SDL2_ttf
+    SDL2_image
 )
-

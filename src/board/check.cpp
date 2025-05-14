@@ -51,6 +51,32 @@ bool CheckValidator::is_checkmate(Board &board, Color player) {
     return true;
 }
 
+bool CheckValidator::is_stalemate(Board &board, Color player) {
+    // Условия пата:
+    // 1. Нет шаха
+    // 2. Нет легальных ходов
+    if (is_check(board, player)) {
+        return false;
+    }
+
+    // Проверяем все возможные ходы
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+            const auto &piece = board.grid_[y][x];
+            if (piece.get_type() != PieceType::NONE && 
+                piece.get_color() == player) {
+                
+                auto moves = MoveGenerator::get_legal_moves(board, {x, y});
+                if (!moves.empty()) {
+                    return false;  // Нашли хотя бы один легальный ход
+                }
+            }
+        }
+    }
+
+    return true;  // Нет легальных ходов - пат
+}
+
 bool CheckValidator::is_attacked(const Board &board, std::pair<int, int> square,
                                  Color by_color) {
     for (int y = 0; y < 8; ++y) {

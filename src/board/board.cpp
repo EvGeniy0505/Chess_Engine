@@ -89,6 +89,10 @@ bool Board::is_checkmate(Color player) {
     return CheckValidator::is_checkmate(*this, player);
 }
 
+bool Board::is_stalemate(Color player) {
+    return CheckValidator::is_stalemate(*this, player);
+}
+
 bool Board::is_attacked(std::pair<int, int> square, Color by_color) const {
     return CheckValidator::is_attacked(*this, square, by_color);
 }

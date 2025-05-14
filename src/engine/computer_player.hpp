@@ -11,10 +11,10 @@ class ComputerPlayer {
 
     static std::unique_ptr<ComputerPlayer> create(Color color,
                                                   int difficulty = 2);
+  Color color_;
 
   private:
     std::unique_ptr<MoveGenerator> generator_;
-    Color color_;
     Move lastMove_; // Добавьте поле для хранения последнего хода
 };
 
