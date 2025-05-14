@@ -2,15 +2,20 @@
 
 #include "pieces/piece.hpp"
 #include <array>
+#include <optional>
 #include <utility>
 #include <vector>
 
 namespace chess {
 
+namespace BoardInitializer {
+extern const char *STANDARD_FEN;
+}
+
 class Board {
   public:
     Color current_player = Color::WHITE;
-    Board(PieceSet set = PieceSet::UNICODE);
+    explicit Board(const std::string &fen = BoardInitializer::STANDARD_FEN);
 
     // Game operations
     bool make_move(std::pair<int, int> from, std::pair<int, int> to,
@@ -25,6 +30,9 @@ class Board {
     bool is_attacked(std::pair<int, int> square, Color by_color) const;
     bool is_empty(std::pair<int, int> square) const;
     bool is_enemy(std::pair<int, int> square, Color ally_color) const;
+    std::optional<std::pair<int, int>> en_passant_target_;
+    int halfmove_clock_ = 0;
+    int fullmove_number_ = 1;
 
     // Accessors
     const Piece &get_piece(std::pair<int, int> square) const {
@@ -36,25 +44,23 @@ class Board {
     void highlight_moves(const std::vector<std::pair<int, int>> &moves);
     void clear_highlights();
 
-  private:
-    std::array<std::array<Piece, 8>, 8> grid_;
-    PieceSet piece_set_ = PieceSet::UNICODE;
-
-    void reset_highlighted_squares();
     struct CastlingRights {
         bool white_kingside = true;
         bool white_queenside = true;
         bool black_kingside = true;
         bool black_queenside = true;
     } castling_rights_;
+    std::array<std::array<Piece, 8>, 8> grid_;
 
-    // Internal helpers
+  private:
+    PieceSet piece_set_ = PieceSet::UNICODE;
+
+    void reset_highlighted_squares();
+
     bool in_bounds(int x, int y) const {
         return x >= 0 && x < 8 && y >= 0 && y < 8;
     }
 
-    // Friend classes for modular implementation
-    friend class BoardInitializer;
     friend class MoveGenerator;
     friend class CastlingManager;
     friend class CheckValidator;

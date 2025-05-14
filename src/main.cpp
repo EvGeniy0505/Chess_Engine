@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
     SetConsoleOutputCP(CP_UTF8);
 #endif
 
-    chess::Board board(pieceSet);
+    chess::Board board;
 
     // Создаём компьютерного игрока с генератором ходов
     auto evaluator = std::make_unique<chess::engine::BasicEvaluator>();
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
             } else if (input == "quit" || input == "q") {
                 break;
             } else if (input == "reset" || input == "r") {
-                board = chess::Board(pieceSet);
+                board = chess::Board();
                 board.print();
                 continue;
             } else if (input.rfind("show ", 0) == 0) {

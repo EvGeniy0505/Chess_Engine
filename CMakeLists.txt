@@ -20,19 +20,19 @@ set(BOARD_SOURCES
     ${SOURCE_ROOT}/board/check.cpp
 )
 
-# set(PIECES_SOURCES
-#     ${SOURCE_ROOT}/pieces/piece.hpp
-#     ${SOURCE_ROOT}/pieces/pieces_types.hpp
-#     ${SOURCE_ROOT}/pieces/symbols.hpp
-#     ${SOURCE_ROOT}/pieces/color.hpp
-# )
-#
-# source_group("Pieces" FILES ${PIECES_SOURCES})
+ set(PIECES_SOURCES
+     ${SOURCE_ROOT}/pieces/piece.hpp
+     ${SOURCE_ROOT}/pieces/piece_types.hpp
+     ${SOURCE_ROOT}/pieces/piece_symbols.hpp
+     ${SOURCE_ROOT}/pieces/piece_color.hpp
+ )
+
+source_group("Pieces" FILES ${PIECES_SOURCES})
 
 add_executable(chess_engine
     ${MAIN_SOURCES}
     ${BOARD_SOURCES}
-    # ${PIECES_SOURCES}
+    ${PIECES_SOURCES}
 )
 
 target_include_directories(chess_engine PRIVATE

@@ -8,8 +8,8 @@
 
 namespace chess {
 
-Board::Board(PieceSet set) : piece_set_(set) {
-    BoardInitializer::setup_initial_position(*this);
+Board::Board(const std::string &fen) {
+    BoardInitializer::setup_initial_position(*this, fen);
 }
 
 bool Board::make_move(std::pair<int, int> from, std::pair<int, int> to,
@@ -140,6 +140,9 @@ void Board::highlight_moves(const std::vector<std::pair<int, int>> &moves) {
         if (in_bounds(x, y)) {
             // Подсвечиваем только пустые клетки или клетки с вражескими фигурами
             // 
+            //
+            //
+            //
             if (is_empty({x, y}) || is_enemy({x, y}, current_player)) {
                 grid_[y][x] = Piece(PieceType::HIGHLIGHT, Color::WHITE);
             }
