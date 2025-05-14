@@ -28,6 +28,7 @@ public:
   std::vector<std::pair<int, int>> getPossibleMoves(int x, int y) const;
   void highlightMoves(const std::vector<std::pair<int, int>> &moves);
   void clearHighlights();
+  bool isStalemate(Color player);
 
 private:
   std::array<std::array<Piece, 8>, 8> grid_;

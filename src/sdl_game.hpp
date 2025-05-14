@@ -23,7 +23,18 @@ private:
     void handleMouseUp(const SDL_Event& event);
     void makeComputerMove();
     void cleanup();
+    void renderGameOverMessage();
+    void renderNewGameButton();
+    bool isNewGameButtonClicked(int x, int y);
+    void renderPromotionDialog(int x, int y);
+    chess::PieceType showPromotionDialog(chess::Color playerColor);
+    
+    bool isPromoting;
+    int promotionX, promotionY;
+    std::array<chess::PieceType, 4> promotionOptions;
 
+    bool gameOver;
+    std::string gameOverMessage;
     SDL_Window* window;
     SDL_Renderer* renderer;
     TTF_Font* font;
