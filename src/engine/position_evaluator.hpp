@@ -6,12 +6,16 @@
 namespace chess::engine {
 
 class PositionEvaluator {
-  public:
+public:
     virtual ~PositionEvaluator() = default;
-    int evaluate(const Board &board, Color color);
-    static Color opposite_color(Color c);
+    
+    static Color opposite_color(Color c) {
+        return c == Color::WHITE ? Color::BLACK : Color::WHITE;
+    }
+    
+    int evaluate(const Board& board, Color color);
 
-  protected:
+protected:
     static constexpr int PAWN_VALUE = 100;
     static constexpr int KNIGHT_VALUE = 320;
     static constexpr int BISHOP_VALUE = 330;
@@ -20,14 +24,23 @@ class PositionEvaluator {
     static constexpr int KING_VALUE = 20000;
 
     static constexpr int CENTER_BONUS = 10;
-    static constexpr int DOUBLED_PAWN_PENALTY = 30;
+    static constexpr int DOUBLED_PAWN_PENALTY = 20;
+    static constexpr int ISOLATED_PAWN_PENALTY = 30;
+    static constexpr int PASSED_PAWN_BONUS = 50;
+    static constexpr int MOBILITY_BONUS = 1;
+    static constexpr int KING_SHIELD_BONUS = 20;
     static constexpr int CHECK_BONUS = 40;
 
-    int evaluate_material(const Board &board, Color color) const;
-    int evaluate_positional(const Board &board, Color color) const;
-    int evaluate_threats(const Board &board, Color color) const;
-    int doubled_pawns_penalty(const Board &board, Color color) const;
-    int count_pawns_on_file(const Board &board, int file, Color color) const;
-    int get_material_value(PieceType type) const;
+    // Основные методы оценки
+    bool is_endgame(const Board& board) const;
+    int evaluate_material(const Board& board, Color color) const;
+    int evaluate_positional(const Board& board, Color color) const;
+    int evaluate_threats(const Board& board, Color color) const;
+    int evaluate_pawn_structure(const Board& board, Color color) const;
+    int evaluate_piece_mobility(const Board& board, Color color) const;
+    int evaluate_king_safety(const Board& board, Color color) const;
+    int doubled_pawns_penalty(const Board& board, Color color) const;
+    int count_pawns_on_file(const Board& board, int file, Color color) const;
 };
+
 } // namespace chess::engine

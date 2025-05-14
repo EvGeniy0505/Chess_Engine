@@ -199,5 +199,19 @@ void Board::clear_highlights() {
     }
 }
 
+Position Board::find_king(Color color) const {
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+            Position pos{x, y};
+            const auto &piece = get_piece(pos);
+            if (piece.get_type() == PieceType::KING &&
+                piece.get_color() == color) {
+                return pos;
+            }
+        }
+    }
+    return {-1, -1}; // В корректной позиции этого не должно происходить
+}
+
 void Board::reset_highlighted_squares() { clear_highlights(); }
 } // namespace chess

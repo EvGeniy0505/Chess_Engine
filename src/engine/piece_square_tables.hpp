@@ -6,7 +6,7 @@ namespace chess::engine {
 using Position = std::pair<int, int>;
 
 struct PieceSquareTables {
-    // Таблицы для белых (для чёрных - зеркально по вертикали)
+    // Все оригинальные таблицы + новые для эндшпиля
     static constexpr std::array<std::array<int, 8>, 8> PAWN = {
         {{0, 0, 0, 0, 0, 0, 0, 0},
          {50, 50, 50, 50, 50, 50, 50, 50},
@@ -67,27 +67,29 @@ struct PieceSquareTables {
          {-30, -40, -40, -50, -50, -40, -40, -30},
          {-30, -40, -40, -50, -50, -40, -40, -30}}};
 
-    static int get_value(PieceType type, Position pos, Color color) {
+    static constexpr std::array<std::array<int, 8>, 8> KING_ENDGAME = {
+        {{-50, -40, -30, -20, -20, -30, -40, -50},
+         {-30, -20, -10, 0, 0, -10, -20, -30},
+         {-30, -10, 20, 30, 30, 20, -10, -30},
+         {-30, -10, 30, 40, 40, 30, -10, -30},
+         {-30, -10, 30, 40, 40, 30, -10, -30},
+         {-30, -10, 20, 30, 30, 20, -10, -30},
+         {-30, -30, 0, 0, 0, 0, -30, -30},
+         {-50, -30, -30, -30, -30, -30, -30, -50}}};
+
+    static int get_value(PieceType type, Position pos, Color color, bool endgame) {
         int y = (color == Color::WHITE) ? pos.second : 7 - pos.second;
         int x = pos.first;
 
         switch (type) {
-            case PieceType::PAWN:
-                return PAWN[y][x];
-            case PieceType::KNIGHT:
-                return KNIGHT[y][x];
-            case PieceType::BISHOP:
-                return BISHOP[y][x];
-            case PieceType::ROOK:
-                return ROOK[y][x];
-            case PieceType::QUEEN:
-                return QUEEN[y][x];
-            case PieceType::KING:
-                return KING_MIDDLEGAME[y][x];
-            default:
-                return 0;
+            case PieceType::PAWN: return PAWN[y][x];
+            case PieceType::KNIGHT: return KNIGHT[y][x];
+            case PieceType::BISHOP: return BISHOP[y][x];
+            case PieceType::ROOK: return ROOK[y][x];
+            case PieceType::QUEEN: return QUEEN[y][x];
+            case PieceType::KING: return endgame ? KING_ENDGAME[y][x] : KING_MIDDLEGAME[y][x];
+            default: return 0;
         }
     }
 };
-
 } // namespace chess::engine

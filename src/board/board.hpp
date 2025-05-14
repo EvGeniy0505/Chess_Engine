@@ -9,6 +9,8 @@
 
 namespace chess {
 
+using Position = std::pair<int, int>;
+
 namespace BoardInitializer {
 extern const char *STANDARD_FEN;
 }
@@ -44,6 +46,8 @@ class Board {
     }
     PieceSet get_piece_set() const { return piece_set_; }
     void set_piece_set(PieceSet set) { piece_set_ = set; }
+
+    Position find_king(Color color) const;
 
     void highlight_moves(const std::vector<std::pair<int, int>> &moves);
     void clear_highlights();
