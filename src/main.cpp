@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory> // Для std::make_unique
 #include <sstream>
+#include <string>
 
 void printHelp() {
     std::cout

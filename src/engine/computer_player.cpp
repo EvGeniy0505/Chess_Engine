@@ -9,9 +9,11 @@ ComputerPlayer::ComputerPlayer(Color color,
     : color_(color), generator_(std::move(generator)) {}
 
 bool ComputerPlayer::makeMove(Board &board) {
-    auto move = generator_->generateBestMove(board, color_);
-    return board.make_move(move.from, move.to);
+    lastMove_ = generator_->generateBestMove(board, color_);
+    return board.make_move(lastMove_.from, lastMove_.to);
 }
+
+Move ComputerPlayer::getLastMove() const { return lastMove_; }
 
 std::unique_ptr<ComputerPlayer> ComputerPlayer::create(Color color,
                                                        int difficulty) {
