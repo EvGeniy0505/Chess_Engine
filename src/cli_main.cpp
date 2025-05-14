@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
     auto generator = std::make_unique<chess::engine::MinimaxGenerator>(
         3, std::move(evaluator));
     auto computer =
-        chess::engine::ComputerPlayer::create(chess::Color::BLACK, 3);
+        chess::engine::ComputerPlayer::create(chess::Color::BLACK, 4);
 
     printHelp();
     board.print();
