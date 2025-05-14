@@ -80,11 +80,8 @@ int main(int argc, char *argv[]) {
     chess::Board board;
 
     // Создаём компьютерного игрока с генератором ходов
-    auto evaluator = std::make_unique<chess::engine::BasicEvaluator>();
-    auto generator = std::make_unique<chess::engine::MinimaxGenerator>(
-        3, std::move(evaluator));
     auto computer =
-        chess::engine::ComputerPlayer::create(chess::Color::BLACK, 4);
+        chess::engine::ComputerPlayer::create(chess::Color::BLACK, 3);
 
     printHelp();
     board.print();

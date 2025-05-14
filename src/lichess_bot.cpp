@@ -10,14 +10,15 @@
 using namespace std;
 
 class EngineUCI {
-private:
+  private:
     chess::Board board;
     unique_ptr<chess::engine::ComputerPlayer> computer;
     bool isBotTurn = false;
     chess::Color botColor; // Храним цвет, за который играет бот
 
-public:
-    EngineUCI() : botColor(chess::Color::BLACK) { // По умолчанию бот играет чёрными
+  public:
+    EngineUCI()
+        : botColor(chess::Color::BLACK) { // По умолчанию бот играет чёрными
         initializeComputerPlayer(botColor);
     }
 
@@ -45,12 +46,10 @@ public:
         }
     }
 
-private:
+  private:
     void respond(const string &response) { cout << response << endl; }
 
     void initializeComputerPlayer(chess::Color color) {
-        auto evaluator = make_unique<chess::engine::BasicEvaluator>();
-        auto generator = make_unique<chess::engine::MinimaxGenerator>(3, move(evaluator));
         computer = chess::engine::ComputerPlayer::create(color, 3);
         botColor = color;
     }
@@ -62,7 +61,8 @@ private:
         } else {
             size_t fenpos = message.find("fen ");
             if (fenpos != string::npos) {
-                string fen = message.substr(fenpos + 4, message.find("moves") - fenpos - 4);
+                string fen = message.substr(fenpos + 4,
+                                            message.find("moves") - fenpos - 4);
                 board = chess::Board(fen);
             }
         }
@@ -84,7 +84,8 @@ private:
     }
 
     bool processMove(const string &moveStr) {
-        if (moveStr.length() < 4) return false;
+        if (moveStr.length() < 4)
+            return false;
 
         int fromX = moveStr[0] - 'a';
         int fromY = '8' - moveStr[1];
@@ -94,14 +95,15 @@ private:
         // Проверяем легальность хода перед выполнением
         auto legalMoves = board.get_legal_moves({fromX, fromY});
         bool isLegal = false;
-        for (const auto& m : legalMoves) {
+        for (const auto &m : legalMoves) {
             if (m.first == toX && m.second == toY) {
                 isLegal = true;
                 break;
             }
         }
 
-        if (!isLegal) return false;
+        if (!isLegal)
+            return false;
 
         return board.make_move({fromX, fromY}, {toX, toY});
     }
@@ -115,9 +117,9 @@ private:
         if (computer->makeMove(board)) {
             chess::engine::Move move = computer->getLastMove();
             string bestmove = string(1, 'a' + move.from.first) +
-                            to_string(8 - move.from.second) +
-                            string(1, 'a' + move.to.first) +
-                            to_string(8 - move.to.second);
+                              to_string(8 - move.from.second) +
+                              string(1, 'a' + move.to.first) +
+                              to_string(8 - move.to.second);
 
             respond("bestmove " + bestmove);
         } else {

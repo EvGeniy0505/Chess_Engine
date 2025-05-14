@@ -4,6 +4,8 @@ project(ChessEngine)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(ENGINE_DEBUG "Enable engine debug output" OFF)
+
 set(SOURCE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 file(GLOB_RECURSE COMMON_SOURCES
@@ -21,6 +23,10 @@ add_executable(cli_chess
     ${SOURCE_ROOT}/cli_main.cpp
     ${COMMON_SOURCES}
 )
+
+if(ENGINE_DEBUG)
+    target_compile_definitions(cli_chess PRIVATE ENGINE_DEBUG)
+endif()
 
 add_executable(gui_chess
     ${SOURCE_ROOT}/gui_main.cpp
