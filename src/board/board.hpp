@@ -2,6 +2,7 @@
 
 #include "pieces/piece.hpp"
 #include <array>
+#include <deque>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -28,9 +29,11 @@ class Board {
     bool is_check(Color player) const;
     bool is_checkmate(Color player);
     bool is_stalemate(Color player);
+    bool is_draw() const;
     bool is_attacked(std::pair<int, int> square, Color by_color) const;
     bool is_empty(std::pair<int, int> square) const;
     bool is_enemy(std::pair<int, int> square, Color ally_color) const;
+
     std::optional<std::pair<int, int>> en_passant_target_;
     int halfmove_clock_ = 0;
     int fullmove_number_ = 1;
@@ -55,8 +58,10 @@ class Board {
 
   private:
     PieceSet piece_set_ = PieceSet::UNICODE;
+    std::deque<std::string> position_history_; // For repetition detection
 
     void reset_highlighted_squares();
+    void add_position_to_history();
 
     bool in_bounds(int x, int y) const {
         return x >= 0 && x < 8 && y >= 0 && y < 8;
@@ -65,5 +70,6 @@ class Board {
     friend class MoveGenerator;
     friend class CastlingManager;
     friend class CheckValidator;
+    friend class DrawRules;
 };
 } // namespace chess

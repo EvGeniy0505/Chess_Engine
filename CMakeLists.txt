@@ -4,20 +4,19 @@ project(ChessEngine)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Базовые пути
 set(SOURCE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-# Собираем исходники ТОЛЬКО из поддиректорий
 file(GLOB_RECURSE COMMON_SOURCES
-    ${SOURCE_ROOT}/board/*.cpp
-    ${SOURCE_ROOT}/engine/*.cpp
     ${SOURCE_ROOT}/pieces/*.cpp
-    ${SOURCE_ROOT}/board/*.hpp
-    ${SOURCE_ROOT}/engine/*.hpp
     ${SOURCE_ROOT}/pieces/*.hpp
+
+    ${SOURCE_ROOT}/board/*.cpp
+    ${SOURCE_ROOT}/board/*.hpp
+
+    ${SOURCE_ROOT}/engine/*.cpp
+    ${SOURCE_ROOT}/engine/*.hpp
 )
 
-# Создание таргетов
 add_executable(cli_chess
     ${SOURCE_ROOT}/cli_main.cpp
     ${COMMON_SOURCES}
@@ -35,14 +34,12 @@ add_executable(lichess_bot
     ${COMMON_SOURCES}
 )
 
-# Настройка include-путей
 foreach(TARGET cli_chess gui_chess lichess_bot)
     target_include_directories(${TARGET} PRIVATE
         ${SOURCE_ROOT}
     )
 endforeach()
 
-# Настройка SDL только для gui_chess
 find_package(SDL2 REQUIRED)
 find_package(SDL2_ttf REQUIRED)
 find_package(SDL2_image REQUIRED)

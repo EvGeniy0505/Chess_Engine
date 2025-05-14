@@ -1,6 +1,7 @@
 #include "board/board.hpp"
 #include "board/castling.hpp"
 #include "board/check.hpp"
+#include "board/draw_rules.hpp"
 #include "board/initialization.hpp"
 #include "board/move_generation.hpp"
 #include <algorithm>
@@ -10,17 +11,23 @@ namespace chess {
 
 Board::Board(const std::string &fen) {
     BoardInitializer::setup_initial_position(*this, fen);
+    add_position_to_history();
+}
+
+void Board::add_position_to_history() {
+    position_history_.push_back(BoardInitializer::export_to_fen(*this));
+    if (position_history_.size() > 8) { // Keep last 8 positions (half-moves)
+        position_history_.pop_front();
+    }
 }
 
 bool Board::make_move(std::pair<int, int> from, std::pair<int, int> to,
                       PieceType promotion) {
-    // Добавьте проверку на выход за границы
     if (!in_bounds(from.first, from.second) ||
         !in_bounds(to.first, to.second)) {
         return false;
     }
 
-    // Используйте get_piece вместо прямого доступа к grid_
     const Piece &piece = get_piece(from);
     if (piece.get_type() == PieceType::NONE ||
         piece.get_color() != current_player) {
@@ -30,7 +37,11 @@ bool Board::make_move(std::pair<int, int> from, std::pair<int, int> to,
     // Handle castling
     if (piece.get_type() == PieceType::KING &&
         abs(from.first - to.first) == 2) {
-        return CastlingManager::try_perform_castle(*this, from, to);
+        bool success = CastlingManager::try_perform_castle(*this, from, to);
+        if (success) {
+            add_position_to_history();
+        }
+        return success;
     }
 
     auto legal_moves = get_legal_moves(from);
@@ -46,7 +57,8 @@ bool Board::make_move(std::pair<int, int> from, std::pair<int, int> to,
 
     // Handle en passant
     if (piece.get_type() == PieceType::PAWN && from.first != to.first &&
-        is_empty(to)) {
+        is_empty(to) && en_passant_target_ && to == *en_passant_target_) {
+        // Remove the captured pawn
         grid_[from.second][to.first] = Piece();
     }
 
@@ -58,10 +70,34 @@ bool Board::make_move(std::pair<int, int> from, std::pair<int, int> to,
                                                           : promotion);
     }
 
+    // Save previous state for halfmove clock
+    bool reset_halfmove =
+        (piece.get_type() == PieceType::PAWN) ||
+        (!is_empty(to) || (en_passant_target_ && to == *en_passant_target_));
+
     // Execute move
     grid_[to.second][to.first] = moved_piece;
     grid_[from.second][from.first] = Piece();
     CastlingManager::update_castling_rights(*this, from);
+
+    // Update en passant target
+    if (piece.get_type() == PieceType::PAWN &&
+        abs(from.second - to.second) == 2) {
+        en_passant_target_ = {from.first, (from.second + to.second) / 2};
+    } else {
+        en_passant_target_ = std::nullopt;
+    }
+
+    // Update halfmove clock and fullmove number
+    if (reset_halfmove) {
+        halfmove_clock_ = 0;
+    } else {
+        halfmove_clock_++;
+    }
+
+    if (current_player == Color::BLACK) {
+        fullmove_number_++;
+    }
 
     // Check for self-check
     if (CheckValidator::is_check(*this, current_player)) {
@@ -73,6 +109,7 @@ bool Board::make_move(std::pair<int, int> from, std::pair<int, int> to,
 
     current_player =
         (current_player == Color::WHITE) ? Color::BLACK : Color::WHITE;
+    add_position_to_history();
     return true;
 }
 
@@ -89,12 +126,14 @@ bool Board::is_checkmate(Color player) {
     return CheckValidator::is_checkmate(*this, player);
 }
 
-bool Board::is_stalemate(Color player) {
-    return CheckValidator::is_stalemate(*this, player);
-}
-
 bool Board::is_attacked(std::pair<int, int> square, Color by_color) const {
     return CheckValidator::is_attacked(*this, square, by_color);
+}
+
+bool Board::is_draw() const { return DrawRules::is_draw(*this); }
+
+bool Board::is_stalemate(Color player) {
+    return DrawRules::is_stalemate(*this, player);
 }
 
 bool Board::is_empty(std::pair<int, int> square) const {
@@ -117,13 +156,11 @@ void Board::print(bool show_highlights) const {
             CellColor cell_color =
                 (x + y) % 2 ? CellColor::BLACK : CellColor::WHITE;
 
-            // Если включена подсветка и это клетка подсветки
             if (show_highlights && piece.get_type() == PieceType::HIGHLIGHT) {
                 cell_color = (x + y) % 2 ? CellColor::HIGHLIGHT_BLACK
                                          : CellColor::HIGHLIGHT_WHITE;
             }
 
-            // Создаем временную фигуру с правильным цветом клетки
             Piece temp_piece = piece;
             temp_piece.set_cell_color(cell_color);
             std::cout << temp_piece.getColoredSymbol(piece_set_);
@@ -136,17 +173,15 @@ void Board::print(bool show_highlights) const {
     if (is_check(current_player)) {
         std::cout << "CHECK!\n";
     }
+    if (is_draw()) {
+        std::cout << "DRAW!\n";
+    }
 }
 
 void Board::highlight_moves(const std::vector<std::pair<int, int>> &moves) {
     clear_highlights();
     for (const auto &[x, y] : moves) {
         if (in_bounds(x, y)) {
-            // Подсвечиваем только пустые клетки или клетки с вражескими фигурами
-            // 
-            //
-            //
-            //
             if (is_empty({x, y}) || is_enemy({x, y}, current_player)) {
                 grid_[y][x] = Piece(PieceType::HIGHLIGHT, Color::WHITE);
             }
@@ -164,13 +199,5 @@ void Board::clear_highlights() {
     }
 }
 
-void Board::reset_highlighted_squares() {
-    for (auto &row : grid_) {
-        for (auto &square : row) {
-            if (square.get_type() == PieceType::HIGHLIGHT) {
-                square = Piece();
-            }
-        }
-    }
-}
+void Board::reset_highlighted_squares() { clear_highlights(); }
 } // namespace chess
