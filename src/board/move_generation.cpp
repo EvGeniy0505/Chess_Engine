@@ -2,9 +2,11 @@
 #include "board/castling.hpp"
 #include "board/check.hpp"
 #include <algorithm>
+#include <iostream>
 
 namespace chess {
 namespace {
+
 void add_pawn_moves(const Board &board, std::vector<std::pair<int, int>> &moves,
                     std::pair<int, int> pos) {
     const auto &piece = board.get_piece(pos);
@@ -28,14 +30,16 @@ void add_pawn_moves(const Board &board, std::vector<std::pair<int, int>> &moves,
         int y = pos.second + direction;
 
         if (x >= 0 && x < 8 && y >= 0 && y < 8) {
+            // Regular capture
             if (board.is_enemy({x, y}, piece.get_color())) {
                 moves.emplace_back(x, y);
             }
 
-            // En passant
+            //
+            // En passant capture
             if (pos.second == en_passant_row && board.en_passant_target_ &&
-                board.en_passant_target_->first == x &&
-                board.en_passant_target_->second == en_passant_row) {
+                x == board.en_passant_target_->first &&
+                y == board.en_passant_target_->second) {
                 moves.emplace_back(x, y);
             }
         }
@@ -190,7 +194,7 @@ MoveGenerator::get_legal_moves(const Board &board, std::pair<int, int> pos) {
     const auto &piece = board.get_piece(pos);
 
     Board temp_board = board;
-    temp_board.current_player = piece.get_color(); // Ensure correct player for check
+    temp_board.current_player = piece.get_color();
 
     for (const auto &move : pseudo_legal) {
         // Save original state
@@ -200,18 +204,25 @@ MoveGenerator::get_legal_moves(const Board &board, std::pair<int, int> pos) {
         auto original_castling = temp_board.castling_rights_;
 
         // Handle en passant capture
-        if (piece.get_type() == PieceType::PAWN && pos.first != move.first && 
-            board.is_empty(move) && board.en_passant_target_ && 
-            move == *board.en_passant_target_) {
-            temp_board.grid_[pos.second][move.first] = Piece();
+        if (piece.get_type() == PieceType::PAWN && pos.first != move.first &&
+            board.is_empty(move) && board.en_passant_target_) {
+            int direction = piece.get_color() == Color::WHITE ? -1 : 1;
+            // Проверяем, что идём на поле за целью en passant
+            if (move.first == board.en_passant_target_->first &&
+                move.second == board.en_passant_target_->second - direction) {
+                // Удаляем пешку с поля en_passant_target_
+                temp_board.grid_[board.en_passant_target_->second]
+                                [board.en_passant_target_->first] = Piece();
+            }
         }
 
         // Execute move
         temp_board.grid_[move.second][move.first] = original_from;
         temp_board.grid_[pos.second][pos.first] = Piece();
 
-        // Update castling rights if needed
-        if (piece.get_type() == PieceType::KING || piece.get_type() == PieceType::ROOK) {
+        // Update castling rights
+        if (piece.get_type() == PieceType::KING ||
+            piece.get_type() == PieceType::ROOK) {
             CastlingManager::update_castling_rights(temp_board, pos);
         }
 
@@ -226,7 +237,7 @@ MoveGenerator::get_legal_moves(const Board &board, std::pair<int, int> pos) {
         temp_board.castling_rights_ = original_castling;
     }
 
-    // Add castling moves if king and not in check
+    // Add castling moves
     if (piece.get_type() == PieceType::KING &&
         !CheckValidator::is_check(board, piece.get_color())) {
         if (CastlingManager::can_castle_kingside(board, piece.get_color())) {
