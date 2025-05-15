@@ -62,6 +62,17 @@ bool Board::make_move(std::pair<int, int> from, std::pair<int, int> to,
         grid_[from.second][to.first] = Piece();
     }
 
+    // Update en passant target
+    if (piece.get_type() == PieceType::PAWN &&
+        abs(from.second - to.second) == 2) {
+        // Для белых пешек: поле за пешкой (ниже по доске)
+        // Для чёрных пешек: поле за пешкой (выше по доске)
+        int direction = piece.get_color() == Color::WHITE ? -1 : 1;
+        en_passant_target_ = {from.first, from.second + direction};
+    } else {
+        en_passant_target_ = std::nullopt;
+    }
+
     // Handle promotion
     Piece moved_piece = piece;
     if (piece.get_type() == PieceType::PAWN &&
@@ -79,14 +90,6 @@ bool Board::make_move(std::pair<int, int> from, std::pair<int, int> to,
     grid_[to.second][to.first] = moved_piece;
     grid_[from.second][from.first] = Piece();
     CastlingManager::update_castling_rights(*this, from);
-
-    // Update en passant target
-    if (piece.get_type() == PieceType::PAWN &&
-        abs(from.second - to.second) == 2) {
-        en_passant_target_ = {from.first, (from.second + to.second) / 2};
-    } else {
-        en_passant_target_ = std::nullopt;
-    }
 
     // Update halfmove clock and fullmove number
     if (reset_halfmove) {
