@@ -2,13 +2,13 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>  
-#include "board.hpp"
-#include "pieces.hpp"
-#include "engine.hpp"
+#include "board/board.hpp"
+#include "pieces/piece.hpp"
+#include "engine/computer_player.hpp"
 
 class SDLGame {
 public:
-    SDLGame(bool vsComputer = false, chess::Color computerColor = chess::Color::Black);
+    SDLGame(bool vsComputer = false, chess::Color computerColor = chess::Color::BLACK);
     ~SDLGame();
     void run();
 
@@ -40,7 +40,7 @@ private:
     TTF_Font* font;
     SDL_Texture* piecesTexture;
     chess::Board board;
-    chess::ComputerPlayer computer;
+    std::unique_ptr<chess::engine::ComputerPlayer> computer; 
     bool isRunning;
     bool isDragging;
     bool vsComputer;

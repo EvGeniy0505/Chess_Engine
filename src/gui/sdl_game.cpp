@@ -6,8 +6,8 @@
 SDLGame::SDLGame(bool vsComputer, chess::Color computerColor) 
     : window(nullptr), renderer(nullptr), font(nullptr), piecesTexture(nullptr),
       isRunning(true), isDragging(false), vsComputer(vsComputer),
-      dragStartX(-1), dragStartY(-1), computer(computerColor),
-      board(chess::PieceSet::UNICODE), gameOver(false) {
+      dragStartX(-1), dragStartY(-1), computer(chess::engine::ComputerPlayer::create(computerColor, 3)),
+      board(), gameOver(false) {
     initSDL();
 }
 
@@ -87,7 +87,7 @@ void SDLGame::renderBoard() {
 }
 
 void SDLGame::drawPiece(const chess::Piece& piece, const SDL_Rect& rect) {
-    if (piece.type == chess::PieceType::None) return;
+    if (piece.get_type() == chess::PieceType::NONE) return;
 
     // 1. Попытка использовать графические спрайты
     if (piecesTexture) {
@@ -96,19 +96,19 @@ void SDLGame::drawPiece(const chess::Piece& piece, const SDL_Rect& rect) {
         SDL_Rect srcRect = {0, 0, pieceSize, pieceSize};
 
         // Выбираем колонку в зависимости от типа фигуры
-        switch (piece.type) {
-            case chess::PieceType::Queen:  srcRect.x = 0; break;
-            case chess::PieceType::King:   srcRect.x = pieceSize; break;
-            case chess::PieceType::Rook:   srcRect.x = pieceSize*2; break;
-            case chess::PieceType::Knight: srcRect.x = pieceSize*3; break;
-            case chess::PieceType::Bishop: srcRect.x = pieceSize*4; break;
-            case chess::PieceType::Pawn:   srcRect.x = pieceSize*5; break;
+        switch (piece.get_type()) {
+            case chess::PieceType::QUEEN:  srcRect.x = 0; break;
+            case chess::PieceType::KING:   srcRect.x = pieceSize; break;
+            case chess::PieceType::ROOK:   srcRect.x = pieceSize*2; break;
+            case chess::PieceType::KNIGHT: srcRect.x = pieceSize*3; break;
+            case chess::PieceType::BISHOP: srcRect.x = pieceSize*4; break;
+            case chess::PieceType::PAWN:   srcRect.x = pieceSize*5; break;
             default: return;
         }
 
         
         // Выбираем строку в зависимости от цвета
-        srcRect.y = (piece.color == chess::Color::White) ? pieceSize : 0;
+        srcRect.y = (piece.get_color() == chess::Color::WHITE) ? pieceSize : 0;
 
         const int drawSize = 100; // Новый размер фигуры
     
@@ -126,7 +126,7 @@ void SDLGame::drawPiece(const chess::Piece& piece, const SDL_Rect& rect) {
     }
 
     // 2. Fallback: рисуем простые цветные круги
-    SDL_Color color = piece.color == chess::Color::White ? 
+    SDL_Color color = piece.get_color() == chess::Color::WHITE ? 
         SDL_Color{255, 255, 255, 255} : SDL_Color{50, 50, 50, 255};
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
     SDL_RenderFillRect(renderer, &rect);
@@ -138,8 +138,8 @@ void SDLGame::renderPieces() {
         for (int x = 0; x < 8; ++x) {
             if (isDragging && x == dragStartX && y == dragStartY) continue;
             
-            const auto& piece = board.getPiece(x, y);
-            if (piece.type == chess::PieceType::None) continue;
+            const auto& piece = board.get_piece({x, y});
+            if (piece.get_type() == chess::PieceType::NONE) continue;
 
             SDL_Rect rect = {x * 100 + 18, y * 100 + 18, 64, 64};
             drawPiece(piece, rect);
@@ -178,15 +178,15 @@ void SDLGame::handleMouseDown(const SDL_Event& event) {
         if (isNewGameButtonClicked(event.button.x, event.button.y)) {
             // Начинаем новую игру
             gameOver = false;
-            board = chess::Board(chess::PieceSet::UNICODE);
-            if (vsComputer && computer.getColor() == chess::Color::White) {
+            board = chess::Board();
+            if (vsComputer && computer->color_ == chess::Color::WHITE) {
                 makeComputerMove(); // Компьютер ходит первым
             }
         }
         return;
     }
 
-    if ((!vsComputer || board.current_player_ != computer.getColor()) && 
+    if ((!vsComputer || board.current_player != computer->color_) && 
         event.button.button == SDL_BUTTON_LEFT) {
         
         int mouseX = event.button.x;
@@ -194,14 +194,14 @@ void SDLGame::handleMouseDown(const SDL_Event& event) {
         dragStartX = mouseX / 100;
         dragStartY = mouseY / 100;
         
-        const auto& piece = board.getPiece(dragStartX, dragStartY);
-        if (piece.type != chess::PieceType::None && 
-            piece.color == board.current_player_) {
+        const auto& piece = board.get_piece({dragStartX, dragStartY});
+        if (piece.get_type() != chess::PieceType::NONE && 
+            piece.get_color() == board.current_player) {
             
             isDragging = true;
             draggedPiece = piece;
             dragRect = {mouseX - 25, mouseY - 25, 50, 50};
-            possibleMoves = board.getPossibleMoves(dragStartX, dragStartY);
+            possibleMoves = board.get_legal_moves({dragStartX, dragStartY});
         }
     }
 }
@@ -222,29 +222,29 @@ void SDLGame::handleMouseUp(const SDL_Event& event) {
         int targetX = mouseX / 100;
         int targetY = mouseY / 100;
         
-        const auto& piece = board.getPiece(dragStartX, dragStartY);
+        const auto& piece = board.get_piece({dragStartX, dragStartY});
         
         // Проверяем, достигла ли пешка последней горизонтали
-        bool isPromotionMove = (piece.type  == chess::PieceType::Pawn) && 
-                              ((piece.color == chess::Color::White && targetY == 0) || 
-                               (piece.color == chess::Color::Black && targetY == 7));
+        bool isPromotionMove = (piece.get_type()  == chess::PieceType::PAWN) && 
+                              ((piece.get_color() == chess::Color::WHITE && targetY == 0) || 
+                               (piece.get_color() == chess::Color::BLACK && targetY == 7));
         
         if (isPromotionMove) {
             promotionX = targetX;
             promotionY = targetY;
-            chess::PieceType promotionChoice = showPromotionDialog(piece.color);
+            chess::PieceType promotionChoice = showPromotionDialog(piece.get_color());
             
-            if (promotionChoice != chess::PieceType::None) {
-                board.makeMove(dragStartX, dragStartY, targetX, targetY, promotionChoice);
+            if (promotionChoice != chess::PieceType::NONE) {
+                board.make_move({dragStartX, dragStartY}, {targetX, targetY}, promotionChoice);
             }
         } else {
-            board.makeMove(dragStartX, dragStartY, targetX, targetY);
+            board.make_move({dragStartX, dragStartY}, {targetX, targetY});
         }
         
         possibleMoves.clear();
         
         // Ход компьютера, если играем против ИИ
-        if (vsComputer && board.current_player_ == computer.getColor()) {
+        if (vsComputer && board.current_player == computer->color_) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             makeComputerMove();
         }
@@ -252,9 +252,9 @@ void SDLGame::handleMouseUp(const SDL_Event& event) {
 }
 
 void SDLGame::makeComputerMove() {
-    if (computer.makeMove(board)) {
-        if (board.isCheckmate(computer.getColor() == chess::Color::White ? 
-                            chess::Color::Black : chess::Color::White)) {
+    if (computer->makeMove(board)) {
+        if (board.is_checkmate(computer->color_ == chess::Color::WHITE ? 
+                            chess::Color::BLACK : chess::Color::WHITE)) {
             std::cout << "Checkmate! Computer wins!" << std::endl;
         }
     }
@@ -265,18 +265,18 @@ void SDLGame::run() {
         handleEvents();
         
         if (!gameOver) {
-            if (vsComputer && board.current_player_ == computer.getColor() && !isDragging) {
+            if (vsComputer && board.current_player == computer->color_ && !isDragging) {
                 makeComputerMove();
             }
             
             // Проверка окончания игры
-            if (board.isCheckmate(chess::Color::White)) {
+            if (board.is_checkmate(chess::Color::WHITE)) {
                 gameOver = true;
                 gameOverMessage = "Чёрные победили! Это мааааат!";
-            } else if (board.isCheckmate(chess::Color::Black)) {
+            } else if (board.is_checkmate(chess::Color::BLACK)) {
                 gameOver = true;
                 gameOverMessage = "Белые победили! Это мааааат!";
-            } else if (board.isStalemate(board.current_player_)) {
+            } else if (board.is_stalemate(board.current_player)) {
                 gameOver = true;
                 gameOverMessage = "Пат! Ничья!";
             }
@@ -439,10 +439,10 @@ void SDLGame::renderPromotionDialog(int x, int y) {
 
     // Варианты фигур
     const std::array<std::pair<chess::PieceType, const char*>, 4> pieces = {
-        std::make_pair(chess::PieceType::Queen, u8"Ферзь"),
-        std::make_pair(chess::PieceType::Rook, u8"Ладья"),
-        std::make_pair(chess::PieceType::Knight, u8"Конь"),
-        std::make_pair(chess::PieceType::Bishop, u8"Слон")
+        std::make_pair(chess::PieceType::QUEEN, u8"Ферзь"),
+        std::make_pair(chess::PieceType::ROOK, u8"Ладья"),
+        std::make_pair(chess::PieceType::KNIGHT, u8"Конь"),
+        std::make_pair(chess::PieceType::BISHOP, u8"Слон")
     };
 
     for (size_t i = 0; i < pieces.size(); ++i) {
@@ -460,7 +460,7 @@ void SDLGame::renderPromotionDialog(int x, int y) {
         SDL_RenderFillRect(renderer, &pieceRect);
 
         // Иконка фигуры
-        chess::Piece tempPiece(pieces[i].first, board.current_player_, "");
+        chess::Piece tempPiece(pieces[i].first, board.current_player);
         drawPiece(tempPiece, pieceRect);
 
         // Название фигуры
@@ -479,8 +479,8 @@ void SDLGame::renderPromotionDialog(int x, int y) {
 
 chess::PieceType SDLGame::showPromotionDialog(chess::Color playerColor) {
     isPromoting = true;
-    promotionOptions = {chess::PieceType::Queen, chess::PieceType::Rook, chess::PieceType::Knight, chess::PieceType::Bishop};
-    chess::PieceType selected = chess::PieceType::None;
+    promotionOptions = {chess::PieceType::QUEEN, chess::PieceType::ROOK, chess::PieceType::KNIGHT, chess::PieceType::BISHOP};
+    chess::PieceType selected = chess::PieceType::NONE;
 
     while (isPromoting && isRunning) {
         SDL_Event event;
