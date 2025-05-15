@@ -27,6 +27,26 @@ class Piece {
         return PieceSymbols::get(type_, color_, set);
     }
 
+    char to_char() const {
+        switch (type_) {
+            case PieceType::PAWN:
+                return (color_ == Color::WHITE) ? 'P' : 'p';
+            case PieceType::KNIGHT:
+                return (color_ == Color::WHITE) ? 'N' : 'n';
+            case PieceType::BISHOP:
+                return (color_ == Color::WHITE) ? 'B' : 'b';
+            case PieceType::ROOK:
+                return (color_ == Color::WHITE) ? 'R' : 'r';
+            case PieceType::QUEEN:
+                return (color_ == Color::WHITE) ? 'Q' : 'q';
+            case PieceType::KING:
+                return (color_ == Color::WHITE) ? 'K' : 'k';
+            case PieceType::NONE:
+                return '.';
+        }
+        return '?'; // На случай ошибки
+    }
+
     std::string getColoredSymbol(PieceSet set = PieceSet::UNICODE) const {
         std::string symbol = PieceSymbols::get(type_, color_, set);
         const auto &codes = getColorCodes(cellColor_);

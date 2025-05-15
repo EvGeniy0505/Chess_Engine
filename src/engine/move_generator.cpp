@@ -66,41 +66,47 @@ MinimaxGenerator::MinimaxGenerator(int depth,
 Move MinimaxGenerator::generateBestMove(Board &board, Color color) {
     DebugLogger logger(color);
     std::vector<std::pair<Move, int>> scored_moves;
-
     auto moves = generateAllMoves(board, color);
-    if (moves.empty())
-        return {{0, 0}, {0, 0}};
+    
+    if (moves.empty()) return {{0, 0}, {0, 0}};
 
-    for (const auto &move : moves) {
-        Board temp = board;
-        temp.make_move(move.from, move.to);
-
-        // Оценка всегда рассчитывается с точки зрения текущего игрока
-        int score = minimax(temp, depth_ - 1, false, color,
-                            std::numeric_limits<int>::min(),
-                            std::numeric_limits<int>::max());
-
-        logger.log_move(move.from, move.to, score);
-        scored_moves.emplace_back(move, score);
+    Move best_move = moves[0];
+    int best_score = std::numeric_limits<int>::min();
+    
+    // Итеративное углубление
+    for (int current_depth = 1; current_depth <= depth_; ++current_depth) {
+        for (const auto &move : moves) {
+            Board temp = board;
+            temp.make_move(move.from, move.to);
+            
+            int score = minimax(temp, current_depth - 1, false, color,
+                               std::numeric_limits<int>::min(),
+                               std::numeric_limits<int>::max());
+            
+            logger.log_move(move.from, move.to, score);
+            
+            if (score > best_score) {
+                best_score = score;
+                best_move = move;
+            }
+        }
     }
 
-    // Выбираем ход с максимальной оценкой для текущего игрока
-    auto best = std::max_element(
-        scored_moves.begin(), scored_moves.end(),
-        [](const auto &a, const auto &b) { return a.second < b.second; });
-
-    return best->first;
+    return best_move;
 }
 
 int MinimaxGenerator::minimax(Board &board, int depth, bool maximizing,
                               Color eval_color, int alpha, int beta) {
-    if (depth == 0 || board.is_checkmate(eval_color)) {
+    if (depth == 0 || board.is_checkmate(eval_color) || board.is_draw()) {
         return evaluator_->evaluate(board, eval_color);
     }
 
     Color current_player =
         maximizing ? eval_color : PositionEvaluator::opposite_color(eval_color);
     auto moves = generateAllMoves(board, current_player);
+
+    // Оптимизация: сортировка ходов (подробнее в п.3)
+    sortMoves(moves, board);
 
     if (maximizing) {
         int max_eval = std::numeric_limits<int>::min();
@@ -111,7 +117,7 @@ int MinimaxGenerator::minimax(Board &board, int depth, bool maximizing,
             max_eval = std::max(max_eval, eval);
             alpha = std::max(alpha, eval);
             if (beta <= alpha)
-                break;
+                break; // Beta-отсечение
         }
         return max_eval;
     } else {
@@ -123,7 +129,7 @@ int MinimaxGenerator::minimax(Board &board, int depth, bool maximizing,
             min_eval = std::min(min_eval, eval);
             beta = std::min(beta, eval);
             if (beta <= alpha)
-                break;
+                break; // Alpha-отсечение
         }
         return min_eval;
     }
