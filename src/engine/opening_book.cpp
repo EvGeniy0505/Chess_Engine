@@ -64,10 +64,20 @@ OpeningBook::OpeningBook(const std::string& filename) {
     }
 }
 
+std::string replaceEnPassant(std::string fen) {
+    if (fen.size() >= 2) {
+        // заменим последние два символа на " -"
+        fen.replace(fen.size() - 2, 2, "-");
+    }
+    return fen;
+}
+
 std::optional<Move> OpeningBook::getOpeningMove(const Board &board, Color color) const {
     std::string fen = BoardInitializer::export_to_fen(board);
     // std::string fen = boardToFEN(board, color);
     std::string key = removeMoveCounters(fen);
+    key = replaceEnPassant(key);
+  
 
     std::cerr << key << '\n';
 
@@ -77,7 +87,7 @@ std::optional<Move> OpeningBook::getOpeningMove(const Board &board, Color color)
 
     const auto& moves = it->second;
 
-    std::cerr << "OpeningBook: найдено ходов = " << moves.size() << '\n';
+    // std::cerr << "OpeningBook: найдено ходов = " << moves.size() << '\n';
 
     // Параметр топ-N — размер окна, из которого выбираем ход случайно
     const int topN = 5;

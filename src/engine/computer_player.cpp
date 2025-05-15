@@ -2,12 +2,14 @@
 #include "engine/move_generator.hpp"
 #include "engine/position_evaluator.hpp"
 #include <iostream> // не забудь добавить, если ещё нет
+#include <stdio.h>
 
 namespace chess::engine {
 
 ComputerPlayer::ComputerPlayer(Color color,
                                std::unique_ptr<MoveGenerator> generator)
-    : color_(color), generator_(std::move(generator)), openingBook_("../assets/opening_book.txt") {}
+    : color_(color), generator_(std::move(generator)),
+      openingBook_("../assets/opening_book.txt") {}
 
 bool ComputerPlayer::makeMove(Board &board) {
     auto openingMove = openingBook_.getOpeningMove(board, color_);
@@ -18,15 +20,8 @@ bool ComputerPlayer::makeMove(Board &board) {
         lastMove_ = generator_->generateBestMove(board, color_);
     }
 
-    // Выводим ход
-    char fromFile = 'a' + lastMove_.from.first;
-    char fromRank = '1' + lastMove_.from.second;
-    char toFile   = 'a' + lastMove_.to.first;
-    char toRank   = '1' + lastMove_.to.second;
-
-    std::cerr << fromFile << fromRank << toFile << toRank << std::endl;
-
-
+    printf("{%d, %d}", lastMove_.from.first, lastMove_.from.second);
+    printf("{%d, %d}", lastMove_.to.first, lastMove_.to.second);
     return board.make_move(lastMove_.from, lastMove_.to);
 }
 
