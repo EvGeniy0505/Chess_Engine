@@ -8,7 +8,7 @@ class ComputerPlayer {
   public:
     ComputerPlayer(Color color, std::unique_ptr<MoveGenerator> generator);
     bool makeMove(Board &board);
-    Move getLastMove() const; // Добавьте этот метод
+    Move getLastMove() const;
 
     static std::unique_ptr<ComputerPlayer> create(Color color,
                                                   int difficulty = 2);
@@ -16,8 +16,8 @@ class ComputerPlayer {
 
   private:
     std::unique_ptr<MoveGenerator> generator_;
-    OpeningBook openingBook_; // добавляем
-    Move lastMove_;           // Добавьте поле для хранения последнего хода
+    OpeningBook openingBook_;
+    Move lastMove_;
 };
 
 } // namespace chess::engine

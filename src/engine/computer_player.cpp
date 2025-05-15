@@ -1,8 +1,7 @@
 #include "engine/computer_player.hpp"
 #include "engine/move_generator.hpp"
 #include "engine/position_evaluator.hpp"
-#include <iostream> // не забудь добавить, если ещё нет
-#include <stdio.h>
+#include <iostream>
 
 namespace chess::engine {
 
@@ -20,8 +19,6 @@ bool ComputerPlayer::makeMove(Board &board) {
         lastMove_ = generator_->generateBestMove(board, color_);
     }
 
-    printf("{%d, %d}", lastMove_.from.first, lastMove_.from.second);
-    printf("{%d, %d}", lastMove_.to.first, lastMove_.to.second);
     return board.make_move(lastMove_.from, lastMove_.to);
 }
 
